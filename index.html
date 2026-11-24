@@ -69,7 +69,15 @@ body.dragging{cursor:col-resize;user-select:none}
 .links{font-size:13px;margin-top:8px}.links a,.popup a,dialog a{color:var(--accent)}
 .badge{font-size:11px;border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-left:4px;font-style:normal;white-space:nowrap;display:inline-block;vertical-align:2px;line-height:1.5}
 .badge.new{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
-.popup b{font-size:14px}.popup ul{padding-left:16px;margin:6px 0}
+.popup .loc{font-size:15px;font-weight:700;text-decoration:none}.popup .loc:hover{text-decoration:underline}
+.popup .loc::after{content:" ↗";font-weight:400;font-size:13px}
+.popup ul{list-style:none;padding:0;margin:8px 0 0}
+.popup li{display:grid;grid-template-columns:minmax(0,1fr) auto 40px;gap:10px;align-items:center;padding:5px 0;border-top:1px solid #e9e2d3;white-space:nowrap}
+.popup li a{color:inherit;font-weight:700;text-decoration:none}.popup li a:hover{color:var(--accent);text-decoration:underline}
+.popup .when{font-size:12px;color:#6b746f}
+.popup img{width:40px;height:40px;border-radius:6px;object-fit:cover;background:#e9e2d3;display:block}
+.leaflet-popup-content{margin:12px 14px}
+@media(max-width:600px){.popup li{white-space:normal}}
 dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);max-width:460px;width:calc(100% - 32px);padding:20px}
 dialog::backdrop{background:rgba(0,0,0,.4)}
 dialog p{margin:0 0 12px}
@@ -217,6 +225,12 @@ order.forEach(l => { l.on('tileload', () => good++);
     map.removeLayer(l); bad = good = 0; cur = n; n.addTo(map); }); });
 map.on('baselayerchange', e => { cur = e.layer; bad = good = 0; });
 const layer = L.layerGroup().addTo(map);
+map.on('popupopen', async e => {
+  for (const img of e.popup.getElement().querySelectorAll('img[data-sci]')) {
+    try { const t = await taxon(img.dataset.sci); if (t.sq) img.src = t.sq; } catch {}
+  }
+  e.popup.update();
+});
 const me = L.circleMarker([center.lat, center.lng], {radius:8, color:'#fff', weight:3, fillColor:'#2a6df4', fillOpacity:1}).addTo(map);
 const ring = L.circle([center.lat, center.lng], {radius:$('dist').value*1000, color:'#2a6df4', weight:1, fill:false, dashArray:'4 6'}).addTo(map);
 map.on('click', e => setCenter(e.latlng.lat, e.latlng.lng, '地圖上選的點'));
@@ -320,11 +334,14 @@ function render(rows){
   Object.values(byLoc).forEach(list => {
     const f = Math.min(...list.map(o=>o.days)), o0 = list[0], seen = {};
     const items = list.filter(o => !seen[o.speciesCode] && (seen[o.speciesCode]=1));
-    const html = `<div class="popup"><b>${esc(o0.locName)}</b><br><small>距離 ${o0.km.toFixed(1)} km</small><ul>${
-      items.map(o=>`<li>${esc(o.comName)}${isNew(o)?'<span class="badge new">新種</span>':''}${o.howMany?` ×${esc(o.howMany)}`:''} · ${ago(o.days)}${o.obsValid?'<span class="badge">已審核</span>':''}${
-        o.subId?` · <a href="https://ebird.org/checklist/${encodeURIComponent(o.subId)}" target="_blank">清單</a>`:''}</li>`).join('')
-    }</ul><a href="https://www.google.com/maps/dir/?api=1&destination=${o0.lat},${o0.lng}" target="_blank">導航過去 →</a></div>`;
-    const m = L.circleMarker([o0.lat,o0.lng], {radius:7+Math.min(items.length,5)*1.5, color:'#fff', weight:2, fillColor:color(f), fillOpacity:.9}).bindPopup(html).addTo(layer);
+    // 地點名稱 → 導航；鳥名 → 那張 eBird 清單；右邊放小圖
+    const html = `<div class="popup"><a class="loc" href="https://www.google.com/maps/dir/?api=1&destination=${o0.lat},${o0.lng}" target="_blank" title="用 Google 地圖導航過去">${esc(o0.locName)}</a><br><small>距離 ${o0.km.toFixed(1)} km · 點地名導航、點鳥名看 eBird 清單</small><ul>${
+      items.map(o=>`<li><span>${o.subId?`<a href="https://ebird.org/checklist/${encodeURIComponent(o.subId)}" target="_blank" title="${esc(o.sciName)}">${esc(o.comName)}</a>`:`<b>${esc(o.comName)}</b>`}${isNew(o)?'<span class="badge new">新種</span>':''}</span>
+        <span class="when">${o.howMany?`×${esc(o.howMany)} · `:''}${ago(o.days)}${o.obsValid?'<span class="badge">已審核</span>':''}</span>
+        <img alt="" data-sci="${esc(binom(o.sciName))}"></li>`).join('')
+    }</ul></div>`;
+    const m = L.circleMarker([o0.lat,o0.lng], {radius:7+Math.min(items.length,5)*1.5, color:'#fff', weight:2, fillColor:color(f), fillOpacity:.9})
+      .bindPopup(html, {maxWidth:Math.min(560, innerWidth-60), minWidth:Math.min(280, innerWidth-60)}).addTo(layer);
     items.forEach(o => (markers[o.speciesCode] ||= []).push(m));
   });
 
