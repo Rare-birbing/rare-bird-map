@@ -200,7 +200,9 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const binom = s => String(s||'').trim().split(/\s+/).slice(0,2).join(' ').toLowerCase();
 
 // ===== ① 狀態：上次的設定都記在瀏覽器裡 =====
+const normLng = x => ((+x + 180) % 360 + 360) % 360 - 180;
 let center = JSON.parse(store.get('center') || 'null') || {lat:33.4484, lng:-112.0740, label:'鳳凰城（預設）'};
+center.lng = normLng(center.lng);
 let places = JSON.parse(store.get('places') || '[]');
 // 生涯紀錄 = 這台裝置上的（匯入 CSV + 按「看過了」）∪ 網站上的 lifelist.txt（各裝置和每日推播共用）
 let local = new Set(JSON.parse(store.get('life') || '[]')), repoList = new Set();
@@ -251,7 +253,8 @@ function status(msg, err){ $('status').textContent = msg; $('status').className 
 const isNew = o => life.size > 0 && !life.has(binom(o.sciName));
 
 function setCenter(lat, lng, label){
-  center = {lat:+lat, lng:+lng, label}; store.set('center', JSON.stringify(center));
+  lng = normLng(lng); lat = Math.max(-89.9, Math.min(89.9, +lat));
+  center = {lat:+lat, lng, label}; store.set('center', JSON.stringify(center));
   me.setLatLng([lat,lng]); ring.setLatLng([lat,lng]); map.fitBounds(ring.getBounds());
   $('places').value = ''; load();
 }
@@ -302,7 +305,9 @@ async function fetchEbird(){
     const p = new URLSearchParams({lat:center.lat.toFixed(3), lng:center.lng.toFixed(3), dist:$('dist').value, back:$('back').value, detail:'full', sppLocale:loc});
     const r = await fetch('https://api.ebird.org/v2/data/obs/geo/recent/notable?'+p, {headers:{'X-eBirdApiToken':key}});
     if (r.status===401 || r.status===403) throw new Error('金鑰無效，請到「設定」重新貼上');
-    if (!r.ok) throw new Error('eBird 回傳錯誤 '+r.status);
+    if (r.status === 400) { let why = ''; try { why = (await r.json()).errors?.[0]?.title || ''; } catch {}
+      throw new Error('eBird 看不懂這次的查詢' + (why ? `（${why}）` : '') + '。試著重新點一下地圖、或用搜尋換個位置。'); }
+    if (!r.ok) throw new Error('eBird 暫時連不上（錯誤 '+r.status+'），稍後再試');
     return r.json();
   };
   const en = await get('en');            // eBird 的繁中名只涵蓋台灣鳥種，所以中英都抓來對照
@@ -318,7 +323,11 @@ async function load(){
   if (!demo && !store.get('key')) { $('dlg').showModal(); return; }
   status('讀取中…');
   try { render(demo ? sampleData() : await fetchEbird()); }
-  catch(e) { status((e.message||'讀取失敗') + (e instanceof TypeError ? '（可能是網路問題，或瀏覽器擋下了連線）' : ''), true); }
+  catch(e) {
+    layer.clearLayers(); groups = []; markers = {};
+    $('list').innerHTML = `<div class="empty">${esc(center.label)} 的資料沒有載入成功，所以這裡先不顯示任何鳥。</div>`;
+    status((e.message||'讀取失敗') + (e instanceof TypeError ? '（可能是網路問題，或瀏覽器擋下了連線）' : ''), true);
+  }
 }
 
 // ===== ⑤ 整理 + 畫出來 =====
