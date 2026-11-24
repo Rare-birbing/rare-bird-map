@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>附近稀有鳥地圖</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1d2b26">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="稀有鳥">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Fraunces:opsz,wght@9..144,700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 野外筆記本——安靜、清楚、為了「現在出門要去哪」而設計
+   IDEA: 一張野外調查地圖 + 旁邊一欄附照片的目標鳥清單
+   PICTURE: 地圖本身，用顏色表示紀錄新舊；清單裡的鳥照片
+   COLOUR/TYPE: 沙漠沙色底、深墨綠文字、朱紅強調；Noto Sans TC + Fraunces
+   LAYOUT: 寬螢幕左清單右地圖；手機上地圖在上、清單在下 */
+:root{color-scheme:light dark;
+ --bg:light-dark(#f6f1e7,#14181a);--panel:light-dark(#fffdf8,#1c2224);
+ --ink:light-dark(#1d2b26,#e8e4da);--muted:light-dark(#6b746f,#9aa39e);
+ --line:light-dark(#e4dccb,#2c3437);--accent:#d2452b}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Noto Sans TC",system-ui,sans-serif;height:100vh;display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{font:700 22px/1.1 Fraunces,"Noto Sans TC",serif;margin:0;margin-right:auto}
+h1 small{font:500 13px "Noto Sans TC";color:var(--muted);margin-left:8px}
+label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+input,select,button{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-height:38px}
+input[type=range]{padding:0;min-height:auto;width:90px}
+input[type=checkbox]{min-height:auto;width:18px;height:18px}
+button{cursor:pointer;background:var(--ink);color:var(--bg);border:0;font-weight:500;white-space:nowrap}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.search{position:relative;display:flex;gap:6px}
+.search input{width:240px}
+#results{position:absolute;top:100%;left:0;right:0;z-index:2000;background:var(--panel);border:1px solid var(--line);border-radius:8px;margin-top:4px;max-height:280px;overflow:auto;display:none}
+#results div{padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--line);font-size:14px}
+#results div:hover{background:var(--bg)}
+main{flex:1;display:grid;grid-template-columns:var(--sw,400px) 8px minmax(0,1fr);min-height:0}
+main.collapsed{grid-template-columns:0 0 minmax(0,1fr)}
+main.collapsed #side,main.collapsed .resizer{overflow:hidden;visibility:hidden}
+#side{overflow-y:auto;background:var(--panel)}
+.resizer{cursor:col-resize;background:var(--line);touch-action:none;position:relative}
+.resizer::after{content:"";position:absolute;left:3px;top:50%;width:2px;height:36px;margin-top:-18px;border-radius:2px;background:var(--muted)}
+.resizer:hover,.resizer.drag{background:var(--accent)}
+body.dragging{cursor:col-resize;user-select:none}
+#map{min-height:300px}
+.status{padding:10px 16px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--line)}
+.status.err{color:var(--accent)}
+.legend{display:flex;gap:14px;padding:8px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}
+.legend span{display:flex;align-items:center;gap:5px}.legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.sp{display:grid;grid-template-columns:60px minmax(0,1fr) auto;gap:2px 12px;padding:12px 16px;border-bottom:1px solid var(--line);cursor:pointer}
+.sp:hover,.sp.on{background:light-dark(#f3ecdd,#232b2e)}
+.thumb{width:60px;height:60px;border-radius:8px;object-fit:cover;background:var(--line);border-left:4px solid;grid-row:span 2}
+.name{font-weight:700}.sci{font-style:italic;color:var(--muted);font-size:13px}
+.dist{font-weight:700;white-space:nowrap;text-align:right}
+.meta{grid-column:2/4;font-size:13px;color:var(--muted)}
+.detail{grid-column:1/-1;margin-top:10px;cursor:default}
+.pics{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pics figure{margin:0}.pics img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;background:var(--line);display:block}
+.pics figcaption{font-size:12px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
+.pics b{color:var(--ink)}
+.links{font-size:13px;margin-top:8px}.links a,.popup a,dialog a{color:var(--accent)}
+.badge{font-size:11px;border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-left:4px;font-style:normal;white-space:nowrap;display:inline-block;vertical-align:2px;line-height:1.5}
+.badge.new{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
+.popup b{font-size:14px}.popup ul{padding-left:16px;margin:6px 0}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);max-width:460px;width:calc(100% - 32px);padding:20px}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+dialog p{margin:0 0 12px}
+.plist div{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.plist button{min-height:32px;padding:4px 10px}
+.credit{padding:14px 16px 20px;font-size:12px;color:var(--muted)}.credit a{color:inherit}
+.empty{padding:24px 16px;color:var(--muted)}
+@media(max-width:760px){main,main.collapsed{grid-template-columns:1fr;grid-template-rows:42vh minmax(0,1fr)}main.collapsed{grid-template-rows:1fr 0}.resizer{display:none}#map{order:-1}.search,.search input{width:100%;flex:1}}
+</style>
+</head>
+<body>
+<header>
+ <button class="ghost" id="toggleList" title="顯示／隱藏清單">☰ 清單</button>
+ <h1>附近稀有鳥<small id="where">尚未定位</small></h1>
+ <form class="search" id="searchForm" autocomplete="off">
+  <input id="q" placeholder="搜尋地址、城市，或貼上座標">
+  <button>搜尋</button>
+  <div id="results"></div>
+ </form>
+ <select id="places" aria-label="常用地點"><option value="">★ 常用地點</option></select>
+ <button class="ghost" id="savePlace">☆ 存這裡</button>
+ <button class="ghost" id="locate">📍 我的位置</button>
+ <div class="row">
+  <label>半徑 <input type="range" id="dist" min="5" max="50" step="5" value="30"><b id="distV">30</b> km</label>
+  <label>最近 <select id="back"><option>1</option><option>3</option><option selected>7</option><option>14</option><option>30</option></select> 天</label>
+  <label>鳥名 <select id="lang"><option value="zh">中文優先</option><option value="en">English</option></select></label>
+  <label><input type="checkbox" id="onlyNew"> 只看新種</label>
+  <button class="ghost" id="settings">設定</button>
+ </div>
+</header>
+<main id="main">
+ <aside id="side">
+  <div class="status" id="status">提示：搜尋地點、選常用地點，或直接點地圖，都能換搜尋中心。</div>
+  <div class="legend"><span><i style="background:#d2452b"></i>今天/昨天</span><span><i style="background:#e89a2c"></i>2–4 天</span><span><i style="background:#8a9a92"></i>更早</span></div>
+  <div id="list"></div>
+  <div class="credit">鳥況資料來自 <a href="https://ebird.org" target="_blank">eBird</a>（Cornell Lab of Ornithology），使用每位使用者自己的 API 金鑰。鳥類照片來自 <a href="https://www.inaturalist.org" target="_blank">iNaturalist</a> 觀察者，版權依各張署名。地圖 © Esri / OpenStreetMap。僅供個人、非商業用途。</div>
+ </aside>
+ <div class="resizer" id="resizer" title="拖曳調整寬度，雙擊恢復預設"></div>
+ <div id="map"></div>
+</main>
+
+<dialog id="dlg">
+ <p><b>eBird API 金鑰</b></p>
+ <p>到 <a href="https://ebird.org/api/keygen" target="_blank">ebird.org/api/keygen</a> 登入後就能免費拿到一組金鑰，貼在下面。它只會存在你自己這台電腦的瀏覽器裡。</p>
+ <p><input id="key" placeholder="貼上金鑰" style="width:100%"></p>
+ <p><b>我的 eBird 紀錄（選填）</b></p>
+ <p style="font-size:13px">到 <a href="https://ebird.org/downloadMyData" target="_blank">ebird.org/downloadMyData</a> 申請下載，eBird 會寄一個 zip 給你，解壓縮後把 <code>MyEBirdData.csv</code> 選進來，就能標出「新種」。</p>
+ <p><input type="file" id="lifeFile" accept=".csv" style="width:100%"> <small id="lifeMsg" style="color:var(--muted)"></small></p>
+ <div class="row" style="justify-content:flex-end">
+  <button class="ghost" id="demo">用示範資料</button>
+  <button class="ghost" id="closeDlg">關閉</button>
+  <button id="save">儲存並搜尋</button>
+ </div>
+</dialog>
+
+<dialog id="placeDlg">
+ <p><b>把目前的搜尋中心存成常用地點</b></p>
+ <p class="row"><input id="placeName" placeholder="例如：弟弟家、Gilbert 濕地" style="flex:1"><button id="placeOk">儲存</button></p>
+ <p style="font-size:13px;color:var(--muted)">已存的地點：</p>
+ <div class="plist" id="plist"></div>
+ <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="ghost" id="placeClose">關閉</button></div>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+{
+const $ = id => document.getElementById(id);
+const store = { get:k=>{try{return localStorage.getItem(k)}catch{return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}} };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const binom = s => String(s||'').trim().split(/\s+/).slice(0,2).join(' ').toLowerCase();
+
+// ===== ① 狀態：上次的設定都記在瀏覽器裡 =====
+let center = JSON.parse(store.get('center') || 'null') || {lat:33.4484, lng:-112.0740, label:'鳳凰城（預設）'};
+let places = JSON.parse(store.get('places') || '[]');
+let life = new Set(JSON.parse(store.get('life') || '[]'));
+let demo = false, groups = [], markers = {};
+$('dist').value = store.get('dist') || 30; $('distV').textContent = $('dist').value;
+$('back').value = store.get('back') || 7;
+$('lang').value = store.get('lang') || 'zh';
+$('onlyNew').checked = store.get('onlyNew') === '1';
+$('lifeMsg').textContent = life.size ? `目前已匯入 ${life.size} 種` : '';
+
+// ===== ② 地圖 =====
+const map = L.map('map').setView([center.lat, center.lng], 10);
+// 直接從電腦打開檔案時，OSM / CARTO 會拒絕；Esri 不會，所以排前面。之後放上網路，OSM 也能用。
+const esri = s => L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${s}/MapServer/tile/{z}/{y}/{x}`, {maxZoom:19, attribution:'Tiles © Esri'});
+const base = { '地形街道':esri('World_Topo_Map'), '衛星影像':esri('World_Imagery'), '街道圖':esri('World_Street_Map'),
+  'OpenStreetMap（上線後可用）':L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'© OpenStreetMap'}) };
+const order = Object.values(base);
+let cur = order[0]; cur.addTo(map);
+L.control.layers(base, null, {position:'topright'}).addTo(map);
+let bad = 0, good = 0;   // 自動備援：底圖一直載不出來就換下一個
+order.forEach(l => { l.on('tileload', () => good++);
+  l.on('tileerror', () => { if (l !== cur || ++bad < 6 || good) return; const n = order[order.indexOf(l)+1]; if (!n) return;
+    map.removeLayer(l); bad = good = 0; cur = n; n.addTo(map); }); });
+map.on('baselayerchange', e => { cur = e.layer; bad = good = 0; });
+const layer = L.layerGroup().addTo(map);
+const me = L.circleMarker([center.lat, center.lng], {radius:8, color:'#fff', weight:3, fillColor:'#2a6df4', fillOpacity:1}).addTo(map);
+const ring = L.circle([center.lat, center.lng], {radius:$('dist').value*1000, color:'#2a6df4', weight:1, fill:false, dashArray:'4 6'}).addTo(map);
+map.on('click', e => setCenter(e.latlng.lat, e.latlng.lng, '地圖上選的點'));
+
+// ===== 小工具 =====
+function km(a,b,c,d){ const R=6371, r=x=>x*Math.PI/180, dLa=r(c-a), dLo=r(d-b);
+  const h=Math.sin(dLa/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLo/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+function daysAgo(dt){ return Math.max(0, Math.floor((Date.now()-new Date(dt.replace(' ','T')))/864e5)); }
+const color = d => d<=1 ? '#d2452b' : d<=4 ? '#e89a2c' : '#8a9a92';
+const ago = d => d===0?'今天':d===1?'昨天':`${d} 天前`;
+function status(msg, err){ $('status').textContent = msg; $('status').className = 'status'+(err?' err':''); }
+const isNew = o => life.size > 0 && !life.has(binom(o.sciName));
+
+function setCenter(lat, lng, label){
+  center = {lat:+lat, lng:+lng, label}; store.set('center', JSON.stringify(center));
+  me.setLatLng([lat,lng]); ring.setLatLng([lat,lng]); map.fitBounds(ring.getBounds());
+  $('places').value = ''; load();
+}
+
+// ===== ③ 換地點：搜尋 / 座標 / 常用地點 =====
+$('searchForm').onsubmit = async e => {
+  e.preventDefault();
+  const q = $('q').value.trim(); if (!q) return;
+  // 直接貼座標，例如從 Google 地圖複製的「27.95, -82.46」
+  const m = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,，\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (m) { setCenter(m[1], m[2], `座標 ${(+m[1]).toFixed(3)}, ${(+m[2]).toFixed(3)}`); $('results').style.display='none'; return; }
+  status('搜尋地點中…');
+  let hits = [];
+  try {   // 先用 Photon（免費、不用金鑰），失敗再用 Nominatim
+    const r = await fetch('https://photon.komoot.io/api/?limit=6&q='+encodeURIComponent(q)); const j = await r.json();
+    hits = j.features.map(f => { const p=f.properties; return {lat:f.geometry.coordinates[1], lng:f.geometry.coordinates[0],
+      label:[p.name, p.city, p.state, p.country].filter((x,i,a)=>x && a.indexOf(x)===i).join(', ')}; });
+  } catch {
+    try { const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&q='+encodeURIComponent(q));
+      hits = (await r.json()).map(h => ({lat:+h.lat, lng:+h.lon, label:h.display_name})); } catch {}
+  }
+  if (!hits.length) return status('找不到這個地點。也可以在 Google 地圖對目的地按右鍵複製座標，貼進搜尋框。', true);
+  $('results').innerHTML = hits.map((h,i)=>`<div data-i="${i}">${esc(h.label)}</div>`).join('');
+  $('results').style.display = 'block';
+  $('results').onclick = ev => { const d = ev.target.closest('[data-i]'); if (!d) return; const h = hits[d.dataset.i];
+    $('results').style.display='none'; $('q').value=''; setCenter(h.lat, h.lng, h.label.split(',').slice(0,2).join(',')); };
+  status('選一個搜尋結果');
+};
+document.addEventListener('click', e => { if (!e.target.closest('.search')) $('results').style.display='none'; });
+
+function renderPlaces(){
+  store.set('places', JSON.stringify(places));
+  $('places').innerHTML = '<option value="">★ 常用地點</option>' + places.map((p,i)=>`<option value="${i}">${esc(p.name)}</option>`).join('');
+  $('plist').innerHTML = places.length ? places.map((p,i)=>`<div><span>${esc(p.name)} <small style="color:var(--muted)">${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}</small></span><button class="ghost" data-del="${i}">刪除</button></div>`).join('') : '<small style="color:var(--muted)">還沒有</small>';
+}
+$('places').onchange = () => { const p = places[$('places').value]; if (p) { setCenter(p.lat, p.lng, p.name); } };
+$('savePlace').onclick = () => { $('placeName').value = center.label.includes('預設')||center.label.includes('選的點') ? '' : center.label; $('placeDlg').showModal(); $('placeName').focus(); };
+$('placeOk').onclick = () => { const n = $('placeName').value.trim(); if (!n) return;
+  places.push({name:n, lat:center.lat, lng:center.lng}); center.label = n; store.set('center', JSON.stringify(center));
+  $('where').textContent = n; renderPlaces(); $('placeDlg').close(); };
+$('plist').onclick = e => { const b = e.target.closest('[data-del]'); if (b) { places.splice(+b.dataset.del,1); renderPlaces(); } };
+$('placeClose').onclick = () => $('placeDlg').close();
+
+// ===== ④ 向 eBird 要資料 =====
+async function fetchEbird(){
+  const key = store.get('key');
+  const get = async loc => {
+    const p = new URLSearchParams({lat:center.lat.toFixed(3), lng:center.lng.toFixed(3), dist:$('dist').value, back:$('back').value, detail:'full', sppLocale:loc});
+    const r = await fetch('https://api.ebird.org/v2/data/obs/geo/recent/notable?'+p, {headers:{'X-eBirdApiToken':key}});
+    if (r.status===401 || r.status===403) throw new Error('金鑰無效，請到「設定」重新貼上');
+    if (!r.ok) throw new Error('eBird 回傳錯誤 '+r.status);
+    return r.json();
+  };
+  const en = await get('en');            // eBird 的繁中名只涵蓋台灣鳥種，所以中英都抓來對照
+  if ($('lang').value !== 'zh') return en;
+  const zh = await get('zh'), zhName = {};
+  zh.forEach(o => zhName[o.speciesCode] = o.comName);
+  en.forEach(o => { const z = zhName[o.speciesCode]; o.enName = o.comName; if (z && z !== o.comName) o.comName = z; });
+  return en;
+}
+
+async function load(){
+  $('where').textContent = center.label;
+  if (!demo && !store.get('key')) { $('dlg').showModal(); return; }
+  status('讀取中…');
+  try { render(demo ? sampleData() : await fetchEbird()); }
+  catch(e) { status((e.message||'讀取失敗') + (e instanceof TypeError ? '（可能是網路問題，或瀏覽器擋下了連線）' : ''), true); }
+}
+
+// ===== ⑤ 整理 + 畫出來 =====
+function render(rows){
+  rows.forEach(o => { o.km = km(center.lat, center.lng, o.lat, o.lng); o.days = daysAgo(o.obsDt); });
+  const total = rows.length;
+  if ($('onlyNew').checked && life.size) rows = rows.filter(isNew);
+
+  // 依鳥種分組（清單用）
+  const bySp = {}; rows.forEach(o => (bySp[o.speciesCode] ||= []).push(o));
+  groups = Object.values(bySp).map(list => { list.sort((a,b)=>a.km-b.km); const o=list[0];
+    return {code:o.speciesCode, com:o.comName, en:o.enName, sci:o.sciName, near:o, n:list.length, lifer:isNew(o),
+            fresh:Math.min(...list.map(x=>x.days)), confirmed:list.some(x=>x.obsValid)};
+  }).sort((a,b)=>a.near.km-b.near.km);
+
+  // 依地點分組（地圖用）
+  layer.clearLayers(); markers = {};
+  const byLoc = {}; rows.forEach(o => (byLoc[o.locId] ||= []).push(o));
+  Object.values(byLoc).forEach(list => {
+    const f = Math.min(...list.map(o=>o.days)), o0 = list[0], seen = {};
+    const items = list.filter(o => !seen[o.speciesCode] && (seen[o.speciesCode]=1));
+    const html = `<div class="popup"><b>${esc(o0.locName)}</b><br><small>距離 ${o0.km.toFixed(1)} km</small><ul>${
+      items.map(o=>`<li>${esc(o.comName)}${isNew(o)?'<span class="badge new">新種</span>':''}${o.howMany?` ×${esc(o.howMany)}`:''} · ${ago(o.days)}${o.obsValid?'<span class="badge">已審核</span>':''}${
+        o.subId?` · <a href="https://ebird.org/checklist/${encodeURIComponent(o.subId)}" target="_blank">清單</a>`:''}</li>`).join('')
+    }</ul><a href="https://www.google.com/maps/dir/?api=1&destination=${o0.lat},${o0.lng}" target="_blank">導航過去 →</a></div>`;
+    const m = L.circleMarker([o0.lat,o0.lng], {radius:7+Math.min(items.length,5)*1.5, color:'#fff', weight:2, fillColor:color(f), fillOpacity:.9}).bindPopup(html).addTo(layer);
+    items.forEach(o => (markers[o.speciesCode] ||= []).push(m));
+  });
+
+  $('list').innerHTML = groups.length ? groups.map(g => `
+    <div class="sp" data-code="${esc(g.code)}">
+      <img class="thumb" alt="" data-sci="${esc(binom(g.sci))}" style="border-color:${color(g.fresh)}">
+      <div><div class="name">${esc(g.com)}${g.lifer?'<span class="badge new">新種</span>':''}</div><div class="sci">${g.en&&g.en!==g.com?esc(g.en)+' · ':''}${esc(g.sci)}</div></div>
+      <div class="dist">${g.near.km.toFixed(1)} km</div>
+      <div class="meta">${esc(g.near.locName)} · 最近一筆 ${ago(g.fresh)} · ${g.n} 筆回報${g.confirmed?'':' · 尚待審核'}</div>
+    </div>`).join('') : '<div class="empty">這個範圍內目前沒有稀有鳥紀錄。試試把半徑或天數調大。</div>';
+  status(`${demo?'【示範資料】':'【eBird 即時資料】'}${groups.length} 種稀有鳥，${rows.length} 筆紀錄${rows.length<total?`（已濾掉 ${total-rows.length} 筆看過的）`:''} · 點鳥種看雌雄照片`);
+  loadThumbs();
+}
+
+// ===== ⑥ 鳥的照片：來自 iNaturalist（公開 API，不用金鑰）=====
+const pc = JSON.parse(store.get('photos') || '{}');
+const saveP = () => store.set('photos', JSON.stringify(pc));
+async function taxon(sci){
+  if (pc[sci]) return pc[sci];
+  const r = await fetch('https://api.inaturalist.org/v1/taxa?is_active=true&per_page=1&q='+encodeURIComponent(sci));
+  const t = (await r.json()).results?.[0];
+  const d = t && t.default_photo ? {id:t.id, sq:t.default_photo.square_url, md:t.default_photo.medium_url, by:t.default_photo.attribution} : {id:t?.id};
+  pc[sci] = d; saveP(); return d;
+}
+async function sexPhoto(id, val){   // iNaturalist 的性別註記：term 9 = Sex，值 11 = 雄、10 = 雌
+  const u = `https://api.inaturalist.org/v1/observations?taxon_id=${id}&term_id=9&term_value_id=${val}&quality_grade=research&photos=true&photo_licensed=true&order_by=votes&per_page=1`;
+  const o = (await (await fetch(u)).json()).results?.[0], p = o?.photos?.[0];
+  return p ? {url:p.url.replace('square','medium'), by:p.attribution, link:o.uri} : null;
+}
+let thumbRun = 0;
+async function loadThumbs(){
+  const run = ++thumbRun;
+  for (const img of document.querySelectorAll('.thumb[data-sci]')) {
+    if (run !== thumbRun) return;   // 使用者換了地點，舊的就不用再抓
+    try { const t = await taxon(img.dataset.sci); if (t.sq) img.src = t.sq; } catch {}
+  }
+}
+async function showDetail(row, g){
+  let d = row.querySelector('.detail');
+  if (d) { d.remove(); return; }
+  d = document.createElement('div'); d.className = 'detail'; d.innerHTML = '<small style="color:var(--muted)">載入照片中…</small>';
+  row.appendChild(d);
+  const links = `<div class="links"><a href="https://ebird.org/species/${encodeURIComponent(g.code)}" target="_blank">eBird 鳥種頁</a> · <a href="https://search.macaulaylibrary.org/catalog?taxonCode=${encodeURIComponent(g.code)}&mediaType=photo" target="_blank">更多照片（Macaulay Library）</a></div>`;
+  try {
+    const t = await taxon(binom(g.sci));
+    if (!t.id) { d.innerHTML = '<small>找不到這個鳥種的照片（雜交或未定種常會這樣）</small>'+links; return; }
+    if (!pc[binom(g.sci)].sex) { const [m, f] = await Promise.all([sexPhoto(t.id,11), sexPhoto(t.id,10)]); pc[binom(g.sci)].sex = {m, f}; saveP(); }
+    const {m, f} = pc[binom(g.sci)].sex;
+    const fig = (p, label) => p ? `<figure><a href="${esc(p.link)}" target="_blank"><img src="${esc(p.url)}" alt="${label}"></a><figcaption><b>${label}</b> ${esc(p.by)}</figcaption></figure>` : '';
+    d.innerHTML = (m || f)
+      ? `<div class="pics">${fig(m,'♂ 雄鳥')}${fig(f,'♀ 雌鳥')}</div>${m&&f?'':'<small style="color:var(--muted)">只找到一種性別的照片，可能雌雄外觀相近。</small>'}${links}`
+      : `<div class="pics">${fig(t.md?{url:t.md,by:t.by,link:'https://www.inaturalist.org/taxa/'+t.id}:null,'外觀')}</div><small style="color:var(--muted)">沒有標註性別的照片，這種鳥通常雌雄外觀相近。</small>${links}`;
+  } catch { d.innerHTML = '<small>照片載入失敗</small>'+links; }
+}
+
+$('list').addEventListener('click', e => {
+  if (e.target.closest('.detail')) return;
+  const row = e.target.closest('.sp'); if (!row) return;
+  document.querySelectorAll('.sp.on').forEach(x=>x.classList.remove('on')); row.classList.add('on');
+  const g = groups.find(x=>x.code===row.dataset.code);
+  map.flyTo([g.near.lat, g.near.lng], 13); setTimeout(()=>markers[g.code]?.[0]?.openPopup(), 600);
+  showDetail(row, g);
+});
+
+// ===== ⑦ 生涯紀錄匯入 =====
+function parseCsv(text){
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i=0;i<text.length;i++){ const c=text[i];
+    if (q){ if (c==='"'){ if (text[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=c; }
+    else if (c==='"') q=true; else if (c===','){row.push(cell);cell='';}
+    else if (c==='\n'){row.push(cell);rows.push(row);row=[];cell='';} else if (c!=='\r') cell+=c; }
+  if (cell||row.length){row.push(cell);rows.push(row);}
+  return rows;
+}
+$('lifeFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const rows = parseCsv(await f.text()), head = rows[0].map(h=>h.trim().toLowerCase());
+  const col = head.findIndex(h => h==='scientific name' || h==='學名');
+  if (col < 0) { $('lifeMsg').textContent = '找不到「Scientific Name」欄位，請確認是 eBird 下載的 CSV'; return; }
+  life = new Set(rows.slice(1).map(r=>binom(r[col])).filter(s=>s.includes(' ')));
+  store.set('life', JSON.stringify([...life])); $('lifeMsg').textContent = `已匯入 ${life.size} 種`; load();
+};
+
+// ===== 清單：收合 + 拖曳調寬 =====
+const mainEl = $('main');
+const setW = w => { w = Math.round(Math.min(Math.max(w, 260), innerWidth*0.7)); mainEl.style.setProperty('--sw', w+'px'); return w; };
+if (+store.get('sw') > 0) setW(+store.get('sw'));
+if (store.get('collapsed') === '1') mainEl.classList.add('collapsed');
+const refit = () => setTimeout(() => map.invalidateSize(), 50);   // 版面變了要通知地圖重新計算大小
+$('toggleList').onclick = () => { const c = mainEl.classList.toggle('collapsed'); store.set('collapsed', c?'1':'0'); refit(); };
+$('resizer').addEventListener('pointerdown', e => {
+  const r = $('resizer'); r.setPointerCapture(e.pointerId); r.classList.add('drag'); document.body.classList.add('dragging');
+  const left = mainEl.getBoundingClientRect().left;
+  const move = ev => { setW(ev.clientX - left); map.invalidateSize(); };
+  const up = ev => { r.releasePointerCapture(ev.pointerId); r.classList.remove('drag'); document.body.classList.remove('dragging');
+    store.set('sw', parseInt(getComputedStyle(mainEl).getPropertyValue('--sw'))); r.removeEventListener('pointermove', move); r.removeEventListener('pointerup', up); };
+  r.addEventListener('pointermove', move); r.addEventListener('pointerup', up);
+});
+$('resizer').ondblclick = () => { setW(400); store.set('sw', 400); refit(); };
+
+// ===== 控制項 =====
+$('dist').oninput = () => { $('distV').textContent = $('dist').value; ring.setRadius($('dist').value*1000); };
+$('dist').onchange = () => { store.set('dist', $('dist').value); map.fitBounds(ring.getBounds()); load(); };
+$('back').onchange = () => { store.set('back', $('back').value); load(); };
+$('lang').onchange = () => { store.set('lang', $('lang').value); load(); };
+$('onlyNew').onchange = () => { store.set('onlyNew', $('onlyNew').checked?'1':'0');
+  if ($('onlyNew').checked && !life.size) { $('dlg').showModal(); $('lifeMsg').textContent='先匯入你的 eBird 紀錄，才知道哪些是新種'; } load(); };
+$('settings').onclick = () => { $('key').value = store.get('key') || ''; $('dlg').showModal(); };
+$('closeDlg').onclick = () => $('dlg').close();
+$('save').onclick = () => { const k=$('key').value.trim(); if(!k) return; store.set('key',k); demo=false; $('dlg').close(); load(); };
+$('demo').onclick = () => { demo=true; $('dlg').close(); load(); };
+$('locate').onclick = () => {
+  if (!navigator.geolocation) return status('這個瀏覽器不支援定位，請用搜尋或直接點地圖', true);
+  status('定位中…');
+  navigator.geolocation.getCurrentPosition(p => setCenter(p.coords.latitude, p.coords.longitude, '我的位置'),
+    () => status('拿不到位置（可能被瀏覽器擋了），請用搜尋或直接點地圖', true), {timeout:10000});
+};
+
+// ===== 示範資料（虛構，只為了展示畫面）=====
+function sampleData(){
+  const t = d => new Date(Date.now()-d*864e5).toISOString().slice(0,10)+' 08:30', zh = $('lang').value==='zh';
+  const S = [['rubrob','棕背鶇','Rufous-backed Robin','Turdus rufopalliatus'],['rugdov','紅褐地鳩','Ruddy Ground Dove','Columbina talpacoti'],
+    ['trokin','熱帶王霸鶲','Tropical Kingbird','Tyrannus melancholicus'],['lotduc','長尾鴨','Long-tailed Duck','Clangula hyemalis'],
+    ['rotbec','玫喉厚嘴霸鶲','Rose-throated Becard','Pachyramphus aglaiae'],['stbori','紋背擬鸝','Streak-backed Oriole','Icterus pustulatus'],
+    ['redegr','棕頸鷺','Reddish Egret','Egretta rufescens']];
+  const L0 = [['L1','Gilbert Riparian Preserve',33.363,-111.734],['L2','Tres Rios Wetlands',33.383,-112.262],
+    ['L3','Papago Park',33.455,-111.949],['L4','Desert Botanical Garden',33.461,-111.944],['L5','Glendale Recharge Ponds',33.473,-112.296]];
+  return [[0,0,0],[0,2,3],[1,1,1],[2,3,2],[3,4,5],[4,0,9],[5,2,1],[6,1,4]].map(([s,l,d],i)=>({speciesCode:S[s][0], comName:zh?S[s][1]:S[s][2], enName:S[s][2], sciName:S[s][3],
+    locId:L0[l][0], locName:L0[l][1], lat:L0[l][2], lng:L0[l][3], obsDt:t(d), howMany:1+(i%2), obsValid:i%3!==0, subId:''}));
+}
+
+renderPlaces();
+load();
+// 放上網路後註冊 Service Worker，讓手機可以「加到主畫面」
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
