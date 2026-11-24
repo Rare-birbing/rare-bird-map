@@ -155,6 +155,7 @@ dialog p{margin:0 0 12px}
   <label>鳥名 <select id="lang"><option value="zh">中文優先</option><option value="en">English</option></select></label>
   <label><input type="checkbox" id="onlyNew"> 只看新種</label>
   <button class="ghost" id="settings">設定</button>
+  <button class="ghost" id="uiSwitch" title="Switch language / 切換語言">EN</button>
   <a href="guide.html" class="ghost" style="font-size:15px;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:7px 12px">說明</a>
  </div>
  </div>
@@ -163,7 +164,7 @@ dialog p{margin:0 0 12px}
  <aside id="side">
   <div class="tabs"><button id="tabRare" class="on">稀有鳥</button><button id="tabCheck">我的鳥種清單</button></div>
   <div id="rareView">
-  <div class="banner" id="banner" hidden>目前顯示的是<b>示範資料</b>（虛構紀錄）。<button id="bannerBtn">貼上免費 eBird 金鑰，看真實鳥況</button><a href="guide.html#start">怎麼申請？</a></div>
+  <div class="banner" id="banner" hidden data-en="You're looking at &lt;b&gt;demo data&lt;/b&gt; (made-up sightings). &lt;button id=&quot;bannerBtn&quot;&gt;Paste a free eBird key to see real sightings&lt;/button&gt;&lt;a href=&quot;guide-en.html#start&quot;&gt;How do I get one?&lt;/a&gt;">目前顯示的是<b>示範資料</b>（虛構紀錄）。<button id="bannerBtn">貼上免費 eBird 金鑰，看真實鳥況</button><a href="guide.html#start">怎麼申請？</a></div>
   <div class="status" id="status">提示：搜尋地點、選常用地點，或直接點地圖，都能換搜尋中心。</div>
   <div class="legend"><span><i style="background:#d2452b"></i>今天/昨天</span><span><i style="background:#e89a2c"></i>2–4 天</span><span><i style="background:#8a9a92"></i>更早</span></div>
   <div id="list"></div>
@@ -175,9 +176,9 @@ dialog p{margin:0 0 12px}
     <div class="row" style="justify-content:space-between"><small id="progTxt" style="color:var(--muted)"></small><small class="syncmsg" style="color:var(--muted)"></small></div>
     <div class="row"><input id="ckq" placeholder="搜尋中文、英文或學名"><select id="ckf" aria-label="篩選"><option value="all">全部</option><option value="todo">還沒看過</option><option value="done">已看過</option><option value="target">🎯 目標鳥（近 30 天有人看到、我還沒看過）</option></select></div>
    </div>
-   <div id="ckList"><div class="empty">先選一個地區，就會列出 eBird 在那裡歷年紀錄過的所有鳥種（含過境鳥和迷鳥），看過的打勾就好。</div></div>
+   <div id="ckList"><div class="empty" data-en="Choose a region to list every species ever reported to eBird there (including migrants and vagrants), then tick the ones you've seen.">先選一個地區，就會列出 eBird 在那裡歷年紀錄過的所有鳥種（含過境鳥和迷鳥），看過的打勾就好。</div></div>
   </div>
-  <div class="credit">鳥況資料來自 <a href="https://ebird.org" target="_blank">eBird</a>（Cornell Lab of Ornithology），使用每位使用者自己的 API 金鑰。鳥類照片來自 <a href="https://www.inaturalist.org" target="_blank">iNaturalist</a> 觀察者，版權依各張署名。地圖 © Esri / OpenStreetMap。僅供個人、非商業用途。</div>
+  <div class="credit" data-en="Sightings from &lt;a href=&quot;https://ebird.org&quot; target=&quot;_blank&quot;&gt;eBird&lt;/a&gt; (Cornell Lab of Ornithology), using each visitor's own API key. Bird photos by &lt;a href=&quot;https://www.inaturalist.org&quot; target=&quot;_blank&quot;&gt;iNaturalist&lt;/a&gt; observers, credited on each photo. Maps © Esri / OpenStreetMap. Personal, non-commercial use only.">鳥況資料來自 <a href="https://ebird.org" target="_blank">eBird</a>（Cornell Lab of Ornithology），使用每位使用者自己的 API 金鑰。鳥類照片來自 <a href="https://www.inaturalist.org" target="_blank">iNaturalist</a> 觀察者，版權依各張署名。地圖 © Esri / OpenStreetMap。僅供個人、非商業用途。</div>
  </aside>
  <div class="resizer" id="resizer" title="拖曳調整寬度，雙擊恢復預設"></div>
  <div id="map"></div>
@@ -185,15 +186,17 @@ dialog p{margin:0 0 12px}
 
 <dialog id="dlg">
  <p><b>eBird API 金鑰</b></p>
- <p>到 <a href="https://ebird.org/api/keygen" target="_blank">ebird.org/api/keygen</a> 登入後就能免費拿到一組金鑰，貼在下面。它只會存在你自己這台電腦的瀏覽器裡。</p>
+ <p data-en="Sign in at &lt;a href=&quot;https://ebird.org/api/keygen&quot; target=&quot;_blank&quot;&gt;ebird.org/api/keygen&lt;/a&gt; to get a free key and paste it below. It's saved only in this browser.">到 <a href="https://ebird.org/api/keygen" target="_blank">ebird.org/api/keygen</a> 登入後就能免費拿到一組金鑰，貼在下面。它只會存在你自己這台電腦的瀏覽器裡。</p>
  <p><input id="key" placeholder="貼上金鑰" style="width:100%"></p>
  <p><b>我的 eBird 紀錄（選填）</b></p>
- <p style="font-size:13px">到 <a href="https://ebird.org/downloadMyData" target="_blank">ebird.org/downloadMyData</a> 申請下載，eBird 會寄一個 zip 給你，解壓縮後把 <code>MyEBirdData.csv</code> 選進來，就能標出「新種」。也可以選之前備份的 <code>lifelist.txt</code> 還原。</p>
+ <p style="font-size:13px" data-en="Request your data at &lt;a href=&quot;https://ebird.org/downloadMyData&quot; target=&quot;_blank&quot;&gt;ebird.org/downloadMyData&lt;/a&gt;. eBird emails you a zip — unzip it and pick &lt;code&gt;MyEBirdData.csv&lt;/code&gt; here to mark lifers. You can also restore a &lt;code&gt;lifelist.txt&lt;/code&gt; backup.">到 <a href="https://ebird.org/downloadMyData" target="_blank">ebird.org/downloadMyData</a> 申請下載，eBird 會寄一個 zip 給你，解壓縮後把 <code>MyEBirdData.csv</code> 選進來，就能標出「新種」。也可以選之前備份的 <code>lifelist.txt</code> 還原。</p>
  <p><input type="file" id="lifeFile" accept=".csv,.txt" style="width:100%"> <small id="lifeMsg" style="color:var(--muted)"></small></p>
+ <p><label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-size:15px"><b>介面語言 Language</b>
+  <select id="uiLang"><option value="zh">中文</option><option value="en">English</option></select></label></p>
  <p><label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-size:15px"><b>導航用</b>
   <select id="navApp"><option value="google">Google 地圖</option><option value="apple">Apple 地圖</option></select></label></p>
  <p><b>自動同步到 GitHub（網站主人用）</b></p>
- <p style="font-size:13px">貼上只能修改這個 repository 的 GitHub 權杖後，你打勾的鳥種會自動存進 <code>lifelist.txt</code>（只有學名，沒有地點日期），手機、電腦和每日推播都會用同一份。<a href="https://github.com/settings/personal-access-tokens/new" target="_blank">建立權杖</a>。不要在別人的電腦上貼。</p>
+ <p style="font-size:13px" data-en="Paste a GitHub token that can only edit this repository, and the birds you tick are saved to &lt;code&gt;lifelist.txt&lt;/code&gt; automatically (scientific names only — no places or dates), shared by your phone, computer and daily alerts. &lt;a href=&quot;https://github.com/settings/personal-access-tokens/new&quot; target=&quot;_blank&quot;&gt;Create a token&lt;/a&gt;. Never paste it on someone else's computer.">貼上只能修改這個 repository 的 GitHub 權杖後，你打勾的鳥種會自動存進 <code>lifelist.txt</code>（只有學名，沒有地點日期），手機、電腦和每日推播都會用同一份。<a href="https://github.com/settings/personal-access-tokens/new" target="_blank">建立權杖</a>。不要在別人的電腦上貼。</p>
  <p class="row"><input id="ghTok" type="password" placeholder="github_pat_…" autocomplete="off" style="flex:1"><button id="ghSave">儲存並同步</button></p>
  <p><small class="syncmsg" style="color:var(--muted)"></small></p>
  <p><button class="ghost" id="exportLife">下載 lifelist.txt（備份用）</button></p>
@@ -232,13 +235,100 @@ dialog p{margin:0 0 12px}
 <script>
 {
 const $ = id => document.getElementById(id);
+// ===== 介面語言：中文為原文，英文用字典對照 =====
+const UI = (() => { try { return localStorage.getItem('ui') || (navigator.language.startsWith('zh') ? 'zh' : 'en'); } catch { return 'zh'; } })();
+const EN = {
+ '顯示／隱藏清單':'Show/hide list','☰ 清單':'☰ List','附近稀有鳥':'Rare Birds Nearby','尚未定位':'No location yet',
+ '搜尋地址、城市，或貼上座標':'Search a place or paste coordinates','搜尋':'Search','篩選 ▾':'Filters ▾','篩選 ▴':'Filters ▴',
+ '常用地點':'Saved places','★ 常用地點':'★ Saved places','☆ 存這裡':'☆ Save place','📍 我的位置':'📍 My location',
+ '範圍':'Area','以中心點畫圓':'Radius around center','整個清單地區':'Whole checklist region','半徑':'Radius','最近':'Last','天':'days',
+ '鳥名':'Bird names','中文優先':'Chinese first','只看新種':'Lifers only','設定':'Settings','說明':'Help',
+ '稀有鳥':'Rare birds','我的鳥種清單':'My checklist',
+ '提示：搜尋地點、選常用地點，或直接點地圖，都能換搜尋中心。':'Tip: search a place, pick a saved place, or click the map to move the search center.',
+ '今天/昨天':'Today/yesterday','2–4 天':'2–4 days','更早':'Older',
+ '尚未選擇地區':'No region selected','選擇地區':'Choose region','搜尋中文、英文或學名':'Search by name or scientific name',
+ '篩選':'Filter','全部':'All','還沒看過':'Not seen yet','已看過':'Seen',
+ '🎯 目標鳥（近 30 天有人看到、我還沒看過）':'🎯 Targets (reported in the last 30 days, not yet seen by me)',
+ '拖曳調整寬度，雙擊恢復預設':'Drag to resize, double-click to reset',
+ 'eBird API 金鑰':'eBird API key','貼上金鑰':'Paste key','我的 eBird 紀錄（選填）':'My eBird records (optional)',
+ '導航用':'Directions with','Google 地圖':'Google Maps','Apple 地圖':'Apple Maps',
+ '自動同步到 GitHub（網站主人用）':'Auto-sync to GitHub (site owner only)','儲存並同步':'Save & sync',
+ '下載 lifelist.txt（備份用）':'Download lifelist.txt (backup)','用示範資料':'Use demo data','關閉':'Close','儲存並搜尋':'Save & search',
+ '放大的鳥類照片':'Enlarged bird photo','選擇鳥種清單的地區':'Choose a region for your checklist',
+ '清單是 eBird 在這個地區歷年所有紀錄過的鳥種，包含過境鳥和迷鳥。地區越小，清單越短。':'The list includes every species ever reported to eBird in this region, including migrants and vagrants. Smaller regions give shorter lists.',
+ '國家':'Country','載入中…':'Loading…','州／縣市':'State / province','（整個國家）':'(Whole country)','郡（選填）':'County (optional)',
+ '（整個州／縣市）':'(Whole state / province)','取消':'Cancel','載入清單':'Load list',
+ '把目前的搜尋中心存成常用地點':'Save the current search center as a place','例如：弟弟家、Gilbert 濕地':"e.g. Brother's house, Gilbert wetlands",
+ '儲存':'Save','已存的地點：':'Saved places:','刪除':'Delete','還沒有':'None yet',
+ '鳳凰城（預設）':'Phoenix (default)','目前共 {n} 種':'{n} species so far',
+ '地形街道':'Topographic','衛星影像':'Satellite','街道圖':'Streets','OpenStreetMap（上線後可用）':'OpenStreetMap',
+ '稀有鳥鳥況':'Rare bird report','已複製，貼到 LINE 就好 ✓':'Copied — paste it anywhere ✓','已複製 ✓':'Copied ✓',
+ '地圖上選的點':'Point on map','今天':'today','昨天':'yesterday','{n} 天前':'{n} days ago',
+ '雜交':'Hybrid','未定種':'Unidentified','新種':'Lifer','已審核':'Reviewed',
+ '用{app}導航過去':'Get directions with {app}','改用{app}':'Use {app}',
+ '🏠 可能是私人地點（例如自家庭院），前往前請先確認是否開放':'🏠 May be a private location (e.g. a backyard) — check access before visiting',
+ '座標 {a}, {b}':'Coordinates {a}, {b}','搜尋地點中…':'Searching…',
+ '找不到這個地點。也可以在 Google 地圖對目的地按右鍵複製座標，貼進搜尋框。':'Place not found. Tip: right-click a spot in Google Maps to copy its coordinates, then paste them here.',
+ '選一個搜尋結果':'Pick a search result',
+ '金鑰無效，請到「設定」重新貼上':'Invalid key — paste it again in Settings',
+ 'eBird 看不懂這次的查詢{why}。試著重新點一下地圖、或用搜尋換個位置。':"eBird couldn't read this query{why}. Try clicking the map again or searching for a place.",
+ 'eBird 暫時連不上（錯誤 {s}），稍後再試':'eBird is unavailable (error {s}). Please try again later.',
+ '讀取中…':'Loading…','{label} 的資料沒有載入成功，所以這裡先不顯示任何鳥。':"Couldn't load data for {label}, so no birds are shown.",
+ '讀取失敗':'Loading failed','（可能是網路問題，或瀏覽器擋下了連線）':' (network problem, or the browser blocked the connection)',
+ '距離 {d} km · 點地名導航、點鳥名看 eBird 清單':'{d} km away · tap the place for directions, a bird for its eBird checklist',
+ '鳥種（依數量排序）':'Species (by count)','數量':'Count','審核':'Review',' · {n} 筆回報':' · {n} reports',
+ '分享這個地點的鳥況':'Share this spot','（可能是私人地點）':' (may be private)','— 來自稀有鳥地圖':'— from Rare Birds Nearby',
+ '{loc} · 最近一筆 {ago} · {n} 筆回報':'{loc} · latest {ago} · {n} reports',' · 尚待審核':' · not yet reviewed',' · 含 {f}':' · incl. {f}',
+ '🏠 可能是私人地點':'🏠 May be private',
+ '這個範圍內目前沒有稀有鳥紀錄。試試把半徑或天數調大。':'No rare birds in this area right now. Try a larger radius or more days.',
+ '【示範資料】':'[Demo data] ','【eBird 即時資料】':'[Live eBird data] ','全{r}：':'All of {r}: ',
+ '{g} 種稀有鳥，{n} 筆紀錄':'{g} rare species, {n} reports','（已濾掉 {n} 筆看過的）':' ({n} already seen hidden)',
+ ' · 點鳥種看雌雄照片':' · click a species for male/female photos','看原始紀錄':'View source',
+ '載入照片中…':'Loading photos…','✓ 已在生涯紀錄':'✓ On your life list','✓ 我看過了':"✓ I've seen it",'eBird 鳥種頁':'eBird species page',
+ '這個地區最近上傳的照片':'Recent photos from this region','更多照片':'More photos',
+ '（Macaulay Library，含 eBird 清單附的照片）':' (Macaulay Library, incl. eBird checklist photos)',
+ '找不到這個鳥種的照片（雜交或未定種常會這樣）':'No photos found (common for hybrids and unidentified birds)',
+ '♂ 雄鳥':'♂ Male','♀ 雌鳥':'♀ Female','外觀':'Appearance',
+ '只找到一種性別的照片，可能雌雄外觀相近。':'Photos for only one sex — males and females may look alike.',
+ '沒有標註性別的照片，這種鳥通常雌雄外觀相近。':'No sex-labeled photos — males and females usually look alike.',
+ '照片載入失敗':'Photos failed to load','已匯入，現在共 {n} 種':'Imported — {n} species total',
+ '找不到「Scientific Name」欄位，請確認是 eBird 下載的 CSV':'No "Scientific Name" column found — is this the CSV from eBird?',
+ '先在「我的鳥種清單」選一個地區，就能看整個地區的稀有鳥':'Choose a region in "My checklist" first to see rare birds across it',
+ '先匯入你的 eBird 紀錄，才知道哪些是新種':'Import your eBird records first so lifers can be marked',
+ '這個瀏覽器不支援定位，請用搜尋或直接點地圖':"This browser can't share your location — search or click the map instead",
+ '定位中…':'Locating…','我的位置':'My location',
+ '拿不到位置（可能被瀏覽器擋了），請用搜尋或直接點地圖':"Couldn't get your location (the browser may have blocked it) — search or click the map instead",
+ '✓ 已加入生涯紀錄':'✓ Added to your life list','eBird 回傳錯誤 {s}':'eBird error {s}',
+ '下載鳥種清單中，第一次大約要 10 秒…':'Downloading the species list — about 10 seconds the first time…',
+ '已看過 {d} / {t} 種（{p}%）':'Seen {d} / {t} species ({p}%)',' · {n} 種是目標鳥':' · {n} targets',
+ '查詢這個地區最近 30 天的紀錄中…':'Checking the last 30 days of sightings…','看過 {n}':'Seen {n}','照片':'Photos','看位置':'Show on map',
+ '這個地區最近 30 天有紀錄的鳥你都看過了，太強了！':"You've seen every bird reported here in the last 30 days — impressive!",
+ '沒有符合的鳥種':'No matching species','eBird 清單':'eBird checklist',
+ '# 我的生涯鳥種（學名），由稀有鳥地圖匯出':'# My life list (scientific names), exported from Rare Birds Nearby',
+ '權杖無效或權限不足':'Token invalid or missing permission','GitHub 錯誤 {s}':'GitHub error {s}','等待同步…':'Waiting to sync…',
+ '同步中…':'Syncing…','權杖無效或沒有寫入權限':'Token invalid or has no write access','✓ 已同步 {t}':'✓ Synced {t}','同步失敗：':'Sync failed: ',
+ '••••••••（已儲存）':'•••••••• (saved)','已移除權杖，改為只存在這台裝置':'Token removed — your list stays on this device only','✓ 已同步':'✓ Synced',
+ '共 {n} 種（含網站上的 lifelist.txt {m} 種）':'{n} species (incl. {m} from lifelist.txt)','台灣':'Taiwan'
+};
+const tr = (k, v = {}) => (UI === 'en' && EN[k] !== undefined ? EN[k] : k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? '');
+document.documentElement.lang = UI === 'en' ? 'en' : 'zh-Hant';
+if (UI === 'en') {     // 換掉網頁上固定的中文
+  document.querySelectorAll('[data-en]').forEach(el => el.innerHTML = el.dataset.en);
+  const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const nodes = []; while (walk.nextNode()) nodes.push(walk.currentNode);
+  nodes.forEach(n => { if (n.parentNode.closest('script,style')) return; const k = n.nodeValue.trim(); if (k && EN[k] !== undefined) n.nodeValue = n.nodeValue.replace(k, EN[k]); });
+  document.querySelectorAll('[placeholder],[title],[aria-label]').forEach(el => ['placeholder','title','aria-label'].forEach(a => { const v = el.getAttribute(a); if (v && EN[v] !== undefined) el.setAttribute(a, EN[v]); }));
+  document.querySelectorAll('a[href^="guide.html"]').forEach(a => a.setAttribute('href', a.getAttribute('href').replace('guide.html', 'guide-en.html')));
+  document.title = 'Rare Birds Nearby';
+}
+
 const store = { get:k=>{try{return localStorage.getItem(k)}catch{return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}} };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const binom = s => String(s||'').trim().split(/\s+/).slice(0,2).join(' ').toLowerCase();
 
 // ===== ① 狀態：上次的設定都記在瀏覽器裡 =====
 const normLng = x => ((+x + 180) % 360 + 360) % 360 - 180;
-let center = JSON.parse(store.get('center') || 'null') || {lat:33.4484, lng:-112.0740, label:'鳳凰城（預設）'};
+let center = JSON.parse(store.get('center') || 'null') || {lat:33.4484, lng:-112.0740, label:tr('鳳凰城（預設）')};
 center.lng = normLng(center.lng);
 let places = JSON.parse(store.get('places') || '[]');
 // 生涯紀錄 = 這台裝置上的（匯入 CSV + 按「看過了」）∪ 網站上的 lifelist.txt（各裝置和每日推播共用）
@@ -252,16 +342,16 @@ rebuildLife();
 let demo = false, groups = [], markers = {};
 $('dist').value = store.get('dist') || 30; $('distV').textContent = $('dist').value;
 $('back').value = store.get('back') || 7;
-$('lang').value = store.get('lang') || 'zh';
+$('lang').value = store.get('lang') || (UI === 'en' ? 'en' : 'zh');
 $('onlyNew').checked = store.get('onlyNew') === '1';
-$('lifeMsg').textContent = life.size ? `目前共 ${life.size} 種` : '';
+$('lifeMsg').textContent = life.size ? tr('目前共 {n} 種', {n:life.size}) : '';
 
 // ===== ② 地圖 =====
 const map = L.map('map').setView([center.lat, center.lng], 10);
 // 直接從電腦打開檔案時，OSM / CARTO 會拒絕；Esri 不會，所以排前面。之後放上網路，OSM 也能用。
 const esri = s => L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${s}/MapServer/tile/{z}/{y}/{x}`, {maxZoom:19, attribution:'Tiles © Esri'});
-const base = { '地形街道':esri('World_Topo_Map'), '衛星影像':esri('World_Imagery'), '街道圖':esri('World_Street_Map'),
-  'OpenStreetMap（上線後可用）':L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'© OpenStreetMap'}) };
+const base = { [tr('地形街道')]:esri('World_Topo_Map'), [tr('衛星影像')]:esri('World_Imagery'), [tr('街道圖')]:esri('World_Street_Map'),
+  [tr('OpenStreetMap（上線後可用）')]:L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'© OpenStreetMap'}) };
 const order = Object.values(base);
 let cur = order[0]; cur.addTo(map);
 L.control.layers(base, null, {position:'topright'}).addTo(map);
@@ -275,9 +365,9 @@ let shareTxt = {};
 async function doShare(b){
   const text = shareTxt[b.dataset.loc]; if (!text) return;
   try {
-    if (navigator.share) await navigator.share({title:'稀有鳥鳥況', text});        // 手機：叫出 LINE 等分享選單
-    else { await navigator.clipboard.writeText(text); b.textContent = '已複製，貼到 LINE 就好 ✓'; }
-  } catch { try { await navigator.clipboard.writeText(text); b.textContent = '已複製 ✓'; } catch {} }
+    if (navigator.share) await navigator.share({title:tr('稀有鳥鳥況'), text});        // 手機：叫出 LINE 等分享選單
+    else { await navigator.clipboard.writeText(text); b.textContent = tr('已複製，貼到 LINE 就好 ✓'); }
+  } catch { try { await navigator.clipboard.writeText(text); b.textContent = tr('已複製 ✓'); } catch {} }
 }
 map.on('popupopen', async e => {
   const sb = e.popup.getElement().querySelector('.share'); if (sb) sb.onclick = () => doShare(sb);
@@ -288,28 +378,28 @@ map.on('popupopen', async e => {
 });
 const me = L.circleMarker([center.lat, center.lng], {radius:8, color:'#fff', weight:3, fillColor:'#2a6df4', fillOpacity:1}).addTo(map);
 const ring = L.circle([center.lat, center.lng], {radius:$('dist').value*1000, color:'#2a6df4', weight:1, fill:false, dashArray:'4 6'}).addTo(map);
-map.on('click', e => setCenter(e.latlng.lat, e.latlng.lng, '地圖上選的點'));
+map.on('click', e => setCenter(e.latlng.lat, e.latlng.lng, tr('地圖上選的點')));
 
 // ===== 小工具 =====
 function km(a,b,c,d){ const R=6371, r=x=>x*Math.PI/180, dLa=r(c-a), dLo=r(d-b);
   const h=Math.sin(dLa/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLo/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
 function daysAgo(dt){ return Math.max(0, Math.floor((Date.now()-new Date(dt.replace(' ','T')))/864e5)); }
 const color = d => d<=1 ? '#d2452b' : d<=4 ? '#e89a2c' : '#8a9a92';
-const ago = d => d===0?'今天':d===1?'昨天':`${d} 天前`;
+const ago = d => d===0?tr('今天'):d===1?tr('昨天'):tr('{n} 天前', {n:d});
 function status(msg, err){ $('status').textContent = msg; $('status').className = 'status'+(err?' err':''); }
 // 鳥種類別：雜交種、未定種（sp. 或 A/B）不算生涯新種；亞種、地理型併回原種
 // 「Colaptes auratus auratus x cafer」是同種亞種交界（intergrade），算原種；「Sphyrapicus nuchalis x ruber」才是跨種雜交
 const kind = o => / x /.test(o.sciName) && o.sciName.split(' x ')[0].trim().split(/\s+/).length < 3 ? 'hybrid' : (/\bsp\.|\//.test(o.sciName + ' ' + o.comName) ? 'spuh' : 'species');
 const gkey = o => kind(o) === 'species' ? binom(o.sciName) : o.speciesCode;
-const kindBadge = o => ({hybrid:'<span class="badge">雜交</span>', spuh:'<span class="badge">未定種</span>'})[kind(o)] || '';
+const kindBadge = o => ({hybrid:`<span class="badge">${tr('雜交')}</span>`, spuh:`<span class="badge">${tr('未定種')}</span>`})[kind(o)] || '';
 const isApple = /iPhone|iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
 const navApp = () => store.get('navApp') || (isApple ? 'apple' : 'google');
-const NAV = {google:{name:'Google 地圖', url:(a,b)=>`https://www.google.com/maps/dir/?api=1&destination=${a},${b}`},
-             apple:{name:'Apple 地圖', url:(a,b)=>`https://maps.apple.com/?daddr=${a},${b}&dirflg=d`}};
+const NAV = {google:{name:tr('Google 地圖'), url:(a,b)=>`https://www.google.com/maps/dir/?api=1&destination=${a},${b}`},
+             apple:{name:tr('Apple 地圖'), url:(a,b)=>`https://maps.apple.com/?daddr=${a},${b}&dirflg=d`}};
 const navUrl = (a, b, app = navApp()) => NAV[app].url(a, b);
 const navLinks = (a, b, name) => { const app = navApp(), other = app === 'google' ? 'apple' : 'google';
-  return `<a class="loc" href="${navUrl(a,b)}" target="_blank" title="用${NAV[app].name}導航過去">${esc(name)}</a><small class="alt"><a href="${navUrl(a,b,other)}" target="_blank">改用${NAV[other].name}</a></small>`; };
-const privNote = '🏠 可能是私人地點（例如自家庭院），前往前請先確認是否開放';
+  return `<a class="loc" href="${navUrl(a,b)}" target="_blank" title="${tr('用{app}導航過去', {app:NAV[app].name})}">${esc(name)}</a><small class="alt"><a href="${navUrl(a,b,other)}" target="_blank">${tr('改用{app}', {app:NAV[other].name})}</a></small>`; };
+const privNote = tr('🏠 可能是私人地點（例如自家庭院），前往前請先確認是否開放');
 const isNew = o => life.size > 0 && kind(o) === 'species' && !life.has(binom(o.sciName));
 
 function setCenter(lat, lng, label){
@@ -325,23 +415,23 @@ $('searchForm').onsubmit = async e => {
   const q = $('q').value.trim(); if (!q) return;
   // 直接貼座標，例如從 Google 地圖複製的「27.95, -82.46」
   const m = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,，\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
-  if (m) { setCenter(m[1], m[2], `座標 ${(+m[1]).toFixed(3)}, ${(+m[2]).toFixed(3)}`); $('results').style.display='none'; return; }
-  status('搜尋地點中…');
+  if (m) { setCenter(m[1], m[2], tr('座標 {a}, {b}', {a:(+m[1]).toFixed(3), b:(+m[2]).toFixed(3)})); $('results').style.display='none'; return; }
+  status(tr('搜尋地點中…'));
   let hits = await geocode(q);
   // 「台南官田」這種沒空格的中文常找不到，拆成「台南 官田」再試一次
   if (!hits.length && /^[\u4e00-\u9fff]{4,}$/.test(q)) hits = await geocode(q.slice(0,2) + ' ' + q.slice(2));
-  if (!hits.length) return status('找不到這個地點。也可以在 Google 地圖對目的地按右鍵複製座標，貼進搜尋框。', true);
+  if (!hits.length) return status(tr('找不到這個地點。也可以在 Google 地圖對目的地按右鍵複製座標，貼進搜尋框。'), true);
   $('results').innerHTML = hits.map((h,i)=>`<div data-i="${i}">${esc(h.label)}</div>`).join('');
   $('results').style.display = 'block';
   $('results').onclick = ev => { const d = ev.target.closest('[data-i]'); if (!d) return; const h = hits[d.dataset.i];
     $('results').style.display='none'; $('q').value=''; setCenter(h.lat, h.lng, h.label.split(',').slice(0,2).join(',')); };
-  status('選一個搜尋結果');
+  status(tr('選一個搜尋結果'));
 };
 document.addEventListener('click', e => { if (!e.target.closest('.search')) $('results').style.display='none'; });
 // 兩個免費地名服務一起查：Nominatim 懂中文地名（例如「鳳凰城」），Photon 會優先找地圖目前附近的地方
 async function geocode(q){
   const c = map.getCenter(), cjk = /[\u4e00-\u9fff]/.test(q);
-  const nomi = fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=zh-TW,zh,en&q='+encodeURIComponent(q))
+  const nomi = fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=${UI==='en'?'en,zh-TW':'zh-TW,zh,en'}&q=`+encodeURIComponent(q))
     .then(r => r.json()).then(a => a.map(h => ({lat:+h.lat, lng:+h.lon, label:h.display_name.replace(/;/g, '／').split(', ').slice(0,3).join(', ')})))
     .catch(() => []);
   const phot = fetch(`https://photon.komoot.io/api/?limit=6&lat=${c.lat.toFixed(3)}&lon=${normLng(c.lng).toFixed(3)}&q=`+encodeURIComponent(q))
@@ -354,15 +444,15 @@ async function geocode(q){
     if (!out.some(x => Math.abs(x.lat-h.lat) < .01 && Math.abs(x.lng-h.lng) < .01)) out.push(h);
   return out.slice(0, 8);
 }
-$('toolsBtn').onclick = () => { const o = document.querySelector('header').classList.toggle('open'); $('toolsBtn').setAttribute('aria-expanded', o); $('toolsBtn').textContent = o ? '篩選 ▴' : '篩選 ▾'; setTimeout(() => map.invalidateSize(), 50); };
+$('toolsBtn').onclick = () => { const o = document.querySelector('header').classList.toggle('open'); $('toolsBtn').setAttribute('aria-expanded', o); $('toolsBtn').textContent = o ? tr('篩選 ▴') : tr('篩選 ▾'); setTimeout(() => map.invalidateSize(), 50); };
 
 function renderPlaces(){
   store.set('places', JSON.stringify(places));
-  $('places').innerHTML = '<option value="">★ 常用地點</option>' + places.map((p,i)=>`<option value="${i}">${esc(p.name)}</option>`).join('');
-  $('plist').innerHTML = places.length ? places.map((p,i)=>`<div><span>${esc(p.name)} <small style="color:var(--muted)">${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}</small></span><button class="ghost" data-del="${i}">刪除</button></div>`).join('') : '<small style="color:var(--muted)">還沒有</small>';
+  $('places').innerHTML = `<option value="">${tr('★ 常用地點')}</option>` + places.map((p,i)=>`<option value="${i}">${esc(p.name)}</option>`).join('');
+  $('plist').innerHTML = places.length ? places.map((p,i)=>`<div><span>${esc(p.name)} <small style="color:var(--muted)">${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}</small></span><button class="ghost" data-del="${i}">${tr('刪除')}</button></div>`).join('') : `<small style="color:var(--muted)">${tr('還沒有')}</small>`;
 }
 $('places').onchange = () => { const p = places[$('places').value]; if (p) { setCenter(p.lat, p.lng, p.name); } };
-$('savePlace').onclick = () => { $('placeName').value = center.label.includes('預設')||center.label.includes('選的點') ? '' : center.label; $('placeDlg').showModal(); $('placeName').focus(); };
+$('savePlace').onclick = () => { $('placeName').value = /預設|選的點|default|Point on map/.test(center.label) ? '' : center.label; $('placeDlg').showModal(); $('placeName').focus(); };
 $('placeOk').onclick = () => { const n = $('placeName').value.trim(); if (!n) return;
   places.push({name:n, lat:center.lat, lng:center.lng}); center.label = n; store.set('center', JSON.stringify(center));
   $('where').textContent = n; renderPlaces(); $('placeDlg').close(); };
@@ -378,10 +468,10 @@ async function fetchEbird(){
       : {lat:center.lat.toFixed(3), lng:center.lng.toFixed(3), dist:$('dist').value, back:$('back').value, detail:'full', sppLocale:loc});
     const url = byRegion ? `https://api.ebird.org/v2/data/obs/${region.code}/recent/notable?` : 'https://api.ebird.org/v2/data/obs/geo/recent/notable?';
     const r = await fetch(url + p, {headers:{'X-eBirdApiToken':key}});
-    if (r.status===401 || r.status===403) throw new Error('金鑰無效，請到「設定」重新貼上');
+    if (r.status===401 || r.status===403) throw new Error(tr('金鑰無效，請到「設定」重新貼上'));
     if (r.status === 400) { let why = ''; try { why = (await r.json()).errors?.[0]?.title || ''; } catch {}
-      throw new Error('eBird 看不懂這次的查詢' + (why ? `（${why}）` : '') + '。試著重新點一下地圖、或用搜尋換個位置。'); }
-    if (!r.ok) throw new Error('eBird 暫時連不上（錯誤 '+r.status+'），稍後再試');
+      throw new Error(tr('eBird 看不懂這次的查詢{why}。試著重新點一下地圖、或用搜尋換個位置。', {why: why ? ` (${why})` : ''})); }
+    if (!r.ok) throw new Error(tr('eBird 暫時連不上（錯誤 {s}），稍後再試', {s:r.status}));
     return r.json();
   };
   const en = await get('en');            // eBird 的繁中名只涵蓋台灣鳥種，所以中英都抓來對照
@@ -396,12 +486,12 @@ async function load(){
   $('where').textContent = center.label;
   if (!store.get('key')) demo = true;          // 還沒有金鑰：先看示範資料，不要一打開就跳設定
   $('banner').hidden = !demo;
-  status('讀取中…');
+  status(tr('讀取中…'));
   try { render(demo ? sampleData() : await fetchEbird()); }
   catch(e) {
     layer.clearLayers(); groups = []; markers = {};
-    $('list').innerHTML = `<div class="empty">${esc(center.label)} 的資料沒有載入成功，所以這裡先不顯示任何鳥。</div>`;
-    status((e.message||'讀取失敗') + (e instanceof TypeError ? '（可能是網路問題，或瀏覽器擋下了連線）' : ''), true);
+    $('list').innerHTML = `<div class="empty">${tr('{label} 的資料沒有載入成功，所以這裡先不顯示任何鳥。', {label:esc(center.label)})}</div>`;
+    status((e.message||tr('讀取失敗')) + (e instanceof TypeError ? tr('（可能是網路問題，或瀏覽器擋下了連線）') : ''), true);
   }
 }
 
@@ -433,17 +523,17 @@ function render(rows){
       if (o.days < g.best.days) g.best = o; g.days = g.best.days; g.subId = g.best.subId; g.obsValid = g.obsValid || o.obsValid; });
     const items = Object.values(sp).sort((a, b) => b.maxN - a.maxN || b.reps - a.reps || a.days - b.days);
     // 地點名稱 → 導航；鳥名 → 那張 eBird 清單；右邊放小圖
-    const html = `<div class="popup">${navLinks(o0.lat, o0.lng, o0.locName)}<br><small>距離 ${o0.km.toFixed(1)} km · 點地名導航、點鳥名看 eBird 清單</small>${o0.locationPrivate?`<div class="priv">${privNote}</div>`:''}<ul>${
-      '<li class="head"><span>鳥種（依數量排序）</span><span class="num">數量</span><span class="ago">最近</span><span class="ok okh">審核</span><span></span></li>' +
-      items.map(o=>`<li><span class="nm">${o.subId?`<a href="https://ebird.org/checklist/${encodeURIComponent(o.subId)}" target="_blank" title="${esc(o.sciName)}${o.reps>1?` · ${o.reps} 筆回報`:''}">${esc(o.comName)}</a>`:`<b title="${esc(o.sciName)}">${esc(o.comName)}</b>`}${isNew(o)?'<span class="badge new">新種</span>':kindBadge(o)}</span>
+    const html = `<div class="popup">${navLinks(o0.lat, o0.lng, o0.locName)}<br><small>${tr('距離 {d} km · 點地名導航、點鳥名看 eBird 清單', {d:o0.km.toFixed(1)})}</small>${o0.locationPrivate?`<div class="priv">${privNote}</div>`:''}<ul>${
+      `<li class="head"><span>${tr('鳥種（依數量排序）')}</span><span class="num">${tr('數量')}</span><span class="ago">${tr('最近')}</span><span class="ok okh">${tr('審核')}</span><span></span></li>` +
+      items.map(o=>`<li><span class="nm">${o.subId?`<a href="https://ebird.org/checklist/${encodeURIComponent(o.subId)}" target="_blank" title="${esc(o.sciName)}${o.reps>1?tr(' · {n} 筆回報', {n:o.reps}):''}">${esc(o.comName)}</a>`:`<b title="${esc(o.sciName)}">${esc(o.comName)}</b>`}${isNew(o)?`<span class="badge new">${tr('新種')}</span>`:kindBadge(o)}</span>
         <span class="num${o.maxN?'':' none'}">${o.maxN?`×${o.maxN}`:'—'}</span>
         <span class="ago">${ago(o.days)}</span>
-        <span class="ok">${o.obsValid?'<span class="badge">已審核</span>':''}</span>
+        <span class="ok">${o.obsValid?`<span class="badge">${tr('已審核')}</span>`:''}</span>
         <img alt="" data-sci="${esc(binom(o.sciName))}"></li>`).join('')
-    }</ul><button class="share" data-loc="${esc(o0.locId)}">分享這個地點的鳥況</button></div>`;
-    shareTxt[o0.locId] = `📍 ${o0.locName}${o0.locationPrivate ? '（可能是私人地點）' : ''}\n` +
+    }</ul><button class="share" data-loc="${esc(o0.locId)}">${tr('分享這個地點的鳥況')}</button></div>`;
+    shareTxt[o0.locId] = `📍 ${o0.locName}${o0.locationPrivate ? tr('（可能是私人地點）') : ''}\n` +
       items.map(o => `• ${o.comName}${o.maxN ? ` ×${o.maxN}` : ''}（${ago(o.days)}）`).join('\n') +
-      `\nGoogle 地圖：${navUrl(o0.lat, o0.lng, 'google')}\nApple 地圖：${navUrl(o0.lat, o0.lng, 'apple')}\n— 來自稀有鳥地圖 ${location.origin}${location.pathname}`;
+      `\n${tr('Google 地圖')}: ${navUrl(o0.lat, o0.lng, 'google')}\n${tr('Apple 地圖')}: ${navUrl(o0.lat, o0.lng, 'apple')}\n${tr('— 來自稀有鳥地圖')} ${location.origin}${location.pathname}`;
     const m = L.circleMarker([o0.lat,o0.lng], {radius:7+Math.min(items.length,5)*1.5, color:'#fff', weight:2, fillColor:color(f), fillOpacity:.9})
       .bindPopup(html, {maxWidth:Math.min(600, innerWidth-60), minWidth:Math.min(460, innerWidth-60)}).addTo(layer);
     items.forEach(o => (markers[o.key] ||= []).push(m));
@@ -452,13 +542,13 @@ function render(rows){
   $('list').innerHTML = groups.length ? groups.map(g => `
     <div class="sp" data-code="${esc(g.code)}">
       <img class="thumb" alt="" data-sci="${esc(binom(g.sci))}" style="border-color:${color(g.fresh)}">
-      <div><div class="name">${esc(g.com)}${g.lifer?'<span class="badge new">新種</span>':g.kb}</div><div class="sci">${g.en&&g.en!==g.com?esc(g.en)+' · ':''}${esc(g.sci)}</div></div>
+      <div><div class="name">${esc(g.com)}${g.lifer?`<span class="badge new">${tr('新種')}</span>`:g.kb}</div><div class="sci">${g.en&&g.en!==g.com?esc(g.en)+' · ':''}${esc(g.sci)}</div></div>
       <div class="dist">${g.near.km.toFixed(1)} km</div>
-      <div class="meta">${esc(g.near.locName)} · 最近一筆 ${ago(g.fresh)} · ${g.n} 筆回報${g.confirmed?'':' · 尚待審核'}${g.forms.length?` · 含 ${esc(g.forms.join('、'))}`:''}${g.priv?'<br>🏠 可能是私人地點':''}</div>
-    </div>`).join('') : '<div class="empty">這個範圍內目前沒有稀有鳥紀錄。試試把半徑或天數調大。</div>';
+      <div class="meta">${tr('{loc} · 最近一筆 {ago} · {n} 筆回報', {loc:esc(g.near.locName), ago:ago(g.fresh), n:g.n})}${g.confirmed?'':tr(' · 尚待審核')}${g.forms.length?tr(' · 含 {f}', {f:esc(g.forms.join(UI==='en'?', ':'、'))}):''}${g.priv?'<br>'+tr('🏠 可能是私人地點'):''}</div>
+    </div>`).join('') : `<div class="empty">${tr('這個範圍內目前沒有稀有鳥紀錄。試試把半徑或天數調大。')}</div>`;
   const byRegion = $('scope').value === 'region' && region && !demo;
   if (byRegion && layer.getLayers().length) map.fitBounds(L.featureGroup(layer.getLayers()).getBounds().pad(.2), {maxZoom:11});
-  status(`${demo?'【示範資料】':'【eBird 即時資料】'}${byRegion ? `全${region.name}：` : ''}${groups.length} 種稀有鳥，${rows.length} 筆紀錄${rows.length<total?`（已濾掉 ${total-rows.length} 筆看過的）`:''} · 點鳥種看雌雄照片`);
+  status(`${demo?tr('【示範資料】'):tr('【eBird 即時資料】')}${byRegion ? tr('全{r}：', {r:region.name}) : ''}${tr('{g} 種稀有鳥，{n} 筆紀錄', {g:groups.length, n:rows.length})}${rows.length<total?tr('（已濾掉 {n} 筆看過的）', {n:total-rows.length}):''}${tr(' · 點鳥種看雌雄照片')}`);
   loadThumbs();
 }
 
@@ -480,7 +570,7 @@ async function sexPhoto(id, val){   // iNaturalist 的性別註記：term 9 = Se
 // ===== 點照片放大 =====
 function openLB(src, cap, link){
   $('lbImg').src = src; $('lbImg').alt = cap;
-  $('lbCap').innerHTML = esc(cap) + (link ? ` · <a href="${esc(link)}" target="_blank">看原始紀錄</a>` : '');
+  $('lbCap').innerHTML = esc(cap) + (link ? ` · <a href="${esc(link)}" target="_blank">${tr('看原始紀錄')}</a>` : '');
   $('lightbox').showModal();
 }
 async function openThumb(sci, name){
@@ -501,20 +591,20 @@ async function loadThumbs(){
 async function showDetail(row, g){
   let d = row.querySelector('.detail');
   if (d) { d.remove(); return; }
-  d = document.createElement('div'); d.className = 'detail'; d.innerHTML = '<small style="color:var(--muted)">載入照片中…</small>';
+  d = document.createElement('div'); d.className = 'detail'; d.innerHTML = `<small style="color:var(--muted)">${tr('載入照片中…')}</small>`;
   row.appendChild(d);
   const done = life.has(binom(g.sci));
-  const links = `<div class="links">${done ? '<span style="color:var(--muted)">✓ 已在生涯紀錄</span> · ' : `<button data-seen="${esc(binom(g.sci))}" style="min-height:32px;padding:4px 12px;margin-right:6px">✓ 我看過了</button>`}<a href="https://ebird.org/species/${encodeURIComponent(g.code)}" target="_blank">eBird 鳥種頁</a> · <a href="https://search.macaulaylibrary.org/catalog?taxonCode=${encodeURIComponent(g.code)}&mediaType=photo${g.reg ? `&regionCode=${encodeURIComponent(g.reg)}&sort=upload_date_desc` : ''}" target="_blank">${g.reg ? '這個地區最近上傳的照片' : '更多照片'}（Macaulay Library，含 eBird 清單附的照片）</a></div>`;
+  const links = `<div class="links">${done ? `<span style="color:var(--muted)">${tr('✓ 已在生涯紀錄')}</span> · ` : `<button data-seen="${esc(binom(g.sci))}" style="min-height:32px;padding:4px 12px;margin-right:6px">${tr('✓ 我看過了')}</button>`}<a href="https://ebird.org/species/${encodeURIComponent(g.code)}" target="_blank">${tr('eBird 鳥種頁')}</a> · <a href="https://search.macaulaylibrary.org/catalog?taxonCode=${encodeURIComponent(g.code)}&mediaType=photo${g.reg ? `&regionCode=${encodeURIComponent(g.reg)}&sort=upload_date_desc` : ''}" target="_blank">${g.reg ? tr('這個地區最近上傳的照片') : tr('更多照片')}${tr('（Macaulay Library，含 eBird 清單附的照片）')}</a></div>`;
   try {
     const t = await taxon(binom(g.sci));
-    if (!t.id) { d.innerHTML = '<small>找不到這個鳥種的照片（雜交或未定種常會這樣）</small>'+links; return; }
+    if (!t.id) { d.innerHTML = `<small>${tr('找不到這個鳥種的照片（雜交或未定種常會這樣）')}</small>`+links; return; }
     if (!pc[binom(g.sci)].sex) { const [m, f] = await Promise.all([sexPhoto(t.id,11), sexPhoto(t.id,10)]); pc[binom(g.sci)].sex = {m, f}; saveP(); }
     const {m, f} = pc[binom(g.sci)].sex;
     const fig = (p, label) => p ? `<figure><img class="lb" src="${esc(p.url)}" alt="${label}" data-full="${esc(p.url.replace('medium','large'))}" data-cap="${esc(label + ' · ' + p.by)}" data-link="${esc(p.link)}"><figcaption><b>${label}</b> ${esc(p.by)}</figcaption></figure>` : '';
     d.innerHTML = (m || f)
-      ? `<div class="pics">${fig(m,'♂ 雄鳥')}${fig(f,'♀ 雌鳥')}</div>${m&&f?'':'<small style="color:var(--muted)">只找到一種性別的照片，可能雌雄外觀相近。</small>'}${links}`
-      : `<div class="pics">${fig(t.md?{url:t.md,by:t.by,link:'https://www.inaturalist.org/taxa/'+t.id}:null,'外觀')}</div><small style="color:var(--muted)">沒有標註性別的照片，這種鳥通常雌雄外觀相近。</small>${links}`;
-  } catch { d.innerHTML = '<small>照片載入失敗</small>'+links; }
+      ? `<div class="pics">${fig(m,tr('♂ 雄鳥'))}${fig(f,tr('♀ 雌鳥'))}</div>${m&&f?'':`<small style="color:var(--muted)">${tr('只找到一種性別的照片，可能雌雄外觀相近。')}</small>`}${links}`
+      : `<div class="pics">${fig(t.md?{url:t.md,by:t.by,link:'https://www.inaturalist.org/taxa/'+t.id}:null,tr('外觀'))}</div><small style="color:var(--muted)">${tr('沒有標註性別的照片，這種鳥通常雌雄外觀相近。')}</small>${links}`;
+  } catch { d.innerHTML = `<small>${tr('照片載入失敗')}</small>`+links; }
 }
 
 $('list').addEventListener('click', e => {
@@ -542,14 +632,14 @@ $('lifeFile').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   if (/\.txt$/i.test(f.name)) {   // 從「下載 lifelist.txt」備份還原
     local = new Set([...local, ...(await f.text()).split('\n').filter(l => l.trim() && !l.startsWith('#')).map(binom)]);
-    store.set('life', JSON.stringify([...local])); rebuildLife(); $('lifeMsg').textContent = `已匯入，現在共 ${life.size} 種`; load(); scheduleSync();
+    store.set('life', JSON.stringify([...local])); rebuildLife(); $('lifeMsg').textContent = tr('已匯入，現在共 {n} 種', {n:life.size}); load(); scheduleSync();
     if (regList) renderCheck(); return;
   }
   const rows = parseCsv(await f.text()), head = rows[0].map(h=>h.trim().toLowerCase());
   const col = head.findIndex(h => h==='scientific name' || h==='學名');
-  if (col < 0) { $('lifeMsg').textContent = '找不到「Scientific Name」欄位，請確認是 eBird 下載的 CSV'; return; }
+  if (col < 0) { $('lifeMsg').textContent = tr('找不到「Scientific Name」欄位，請確認是 eBird 下載的 CSV'); return; }
   local = new Set([...local, ...rows.slice(1).map(r=>binom(r[col])).filter(s=>s.includes(' '))]);
-  store.set('life', JSON.stringify([...local])); rebuildLife(); $('lifeMsg').textContent = `已匯入，現在共 ${life.size} 種`; load(); scheduleSync();
+  store.set('life', JSON.stringify([...local])); rebuildLife(); $('lifeMsg').textContent = tr('已匯入，現在共 {n} 種', {n:life.size}); load(); scheduleSync();
 };
 
 // ===== 清單：收合 + 拖曳調寬 =====
@@ -579,25 +669,29 @@ $('scope').value = store.get('scope') || 'radius'; applyScope();
 $('scope').onchange = () => {
   if ($('scope').value === 'region' && !region) {      // 還沒選過地區，先帶去選
     $('scope').value = 'radius'; showTab('check'); openRegion();
-    return status('先在「我的鳥種清單」選一個地區，就能看整個地區的稀有鳥');
+    return status(tr('先在「我的鳥種清單」選一個地區，就能看整個地區的稀有鳥'));
   }
   store.set('scope', $('scope').value); applyScope(); load();
 };
-$('lang').onchange = () => { store.set('lang', $('lang').value); load(); };
+$('lang').onchange = () => { store.set('lang', $('lang').value); load(); if (regList) renderCheck(); };
 $('onlyNew').onchange = () => { store.set('onlyNew', $('onlyNew').checked?'1':'0');
-  if ($('onlyNew').checked && !life.size) { $('dlg').showModal(); $('lifeMsg').textContent='先匯入你的 eBird 紀錄，才知道哪些是新種'; } load(); };
+  if ($('onlyNew').checked && !life.size) { $('dlg').showModal(); $('lifeMsg').textContent=tr('先匯入你的 eBird 紀錄，才知道哪些是新種'); } load(); };
 $('settings').onclick = () => { $('key').value = store.get('key') || ''; $('dlg').showModal(); };
 $('navApp').value = navApp();
 $('navApp').onchange = () => { store.set('navApp', $('navApp').value); if (groups.length) load(); };
+$('uiLang').value = UI;
+$('uiLang').onchange = () => { store.set('ui', $('uiLang').value); location.reload(); };
+$('uiSwitch').textContent = UI === 'en' ? '中文' : 'EN';
+$('uiSwitch').onclick = () => { store.set('ui', UI === 'en' ? 'zh' : 'en'); location.reload(); };
 $('closeDlg').onclick = () => $('dlg').close();
 $('save').onclick = () => { const k=$('key').value.trim(); if(!k) return; store.set('key',k); demo=false; $('dlg').close(); load(); };
 $('demo').onclick = () => { demo=true; $('dlg').close(); load(); };
 $('bannerBtn').onclick = () => { $('key').value = ''; $('dlg').showModal(); $('key').focus(); };
 $('locate').onclick = () => {
-  if (!navigator.geolocation) return status('這個瀏覽器不支援定位，請用搜尋或直接點地圖', true);
-  status('定位中…');
-  navigator.geolocation.getCurrentPosition(p => setCenter(p.coords.latitude, p.coords.longitude, '我的位置'),
-    () => status('拿不到位置（可能被瀏覽器擋了），請用搜尋或直接點地圖', true), {timeout:10000});
+  if (!navigator.geolocation) return status(tr('這個瀏覽器不支援定位，請用搜尋或直接點地圖'), true);
+  status(tr('定位中…'));
+  navigator.geolocation.getCurrentPosition(p => setCenter(p.coords.latitude, p.coords.longitude, tr('我的位置')),
+    () => status(tr('拿不到位置（可能被瀏覽器擋了），請用搜尋或直接點地圖'), true), {timeout:10000});
 };
 
 // ===== 示範資料（虛構，只為了展示畫面）=====
@@ -617,14 +711,14 @@ function sampleData(){
 $('list').addEventListener('click', e => {
   const b = e.target.closest('[data-seen]'); if (!b) return;
   markSeen(b.dataset.seen, true);
-  b.outerHTML = '<span style="color:var(--muted)">✓ 已加入生涯紀錄</span> ·';
+  b.outerHTML = `<span style="color:var(--muted)">${tr('✓ 已加入生涯紀錄')}</span> ·`;
   if (regList) renderCheck();
 });
 // ===== ⑧ 我的鳥種清單：選地區 → 列出歷年紀錄過的鳥種 → 看過的打勾 =====
 const api = async path => {
   const r = await fetch('https://api.ebird.org/v2/' + path, {headers:{'X-eBirdApiToken': store.get('key')}});
-  if (r.status === 401 || r.status === 403) throw new Error('金鑰無效，請到「設定」重新貼上');
-  if (!r.ok) throw new Error('eBird 回傳錯誤 ' + r.status);
+  if (r.status === 401 || r.status === 403) throw new Error(tr('金鑰無效，請到「設定」重新貼上'));
+  if (!r.ok) throw new Error(tr('eBird 回傳錯誤 {s}', {s:r.status}));
   return r.json();
 };
 let region = JSON.parse(store.get('region') || 'null'), regList = null;
@@ -635,8 +729,8 @@ async function regionsOf(type, parent){
 const TW = {CHA:'彰化縣',CYI:'嘉義市',CYQ:'嘉義縣',HSZ:'新竹市',HSQ:'新竹縣',HUA:'花蓮縣',ILA:'宜蘭縣',KEE:'基隆市',KHH:'高雄市',KIN:'金門縣',LIE:'連江縣（馬祖）',
   MIA:'苗栗縣',NAN:'南投縣',NWT:'新北市',PEN:'澎湖縣',PIF:'屏東縣',TAO:'桃園市',TNN:'臺南市',TPE:'臺北市',TTT:'臺東縣',TXG:'臺中市',YUN:'雲林縣'};
 let dn = null; try { dn = new Intl.DisplayNames(['zh-Hant'], {type:'region'}); } catch {}
-if (region && /^TW(-|$)/.test(region.code)) region.name = ['台灣', TW[region.code.slice(3)]].filter(Boolean).join(' · ');
-const zhRegion = r => {
+if (UI === 'zh' && region && /^TW(-|$)/.test(region.code)) region.name = ['台灣', TW[region.code.slice(3)]].filter(Boolean).join(' · ');
+const zhRegion = r => { if (UI !== 'zh') return r.name;
   if (/^TW-[A-Z]{3}$/.test(r.code) && TW[r.code.slice(3)]) return TW[r.code.slice(3)];
   if (/^[A-Z]{2}$/.test(r.code)) { try { const z = dn?.of(r.code); if (z && z !== r.code && z !== r.name) return `${z} ${r.name}`; } catch {} }
   return r.name;
@@ -647,12 +741,12 @@ const fillSel = (sel, items, first) => {
   $(sel).innerHTML = (first ? `<option value="">${first}</option>` : '') + list.map(r => `<option value="${esc(r.code)}">${esc(r.name)}</option>`).join('');
 };
 async function onCountry(){
-  const c = $('rCountry').value; fillSel('rState', [], '（整個國家）'); fillSel('rCounty', [], '（整個州／縣市）');
-  try { fillSel('rState', await regionsOf('subnational1', c), '（整個國家）'); } catch {}
+  const c = $('rCountry').value; fillSel('rState', [], tr('（整個國家）')); fillSel('rCounty', [], tr('（整個州／縣市）'));
+  try { fillSel('rState', await regionsOf('subnational1', c), tr('（整個國家）')); } catch {}
 }
 async function onState(){
-  const st = $('rState').value; fillSel('rCounty', [], '（整個州／縣市）'); if (!st) return;
-  try { fillSel('rCounty', await regionsOf('subnational2', st), '（整個州／縣市）'); } catch {}
+  const st = $('rState').value; fillSel('rCounty', [], tr('（整個州／縣市）')); if (!st) return;
+  try { fillSel('rCounty', await regionsOf('subnational2', st), tr('（整個州／縣市）')); } catch {}
 }
 $('rCountry').onchange = onCountry; $('rState').onchange = onState;
 $('pickRegion').onclick = openRegion;
@@ -671,8 +765,8 @@ async function openRegion(){
 $('regOk').onclick = async () => {
   const code = $('rCounty').value || $('rState').value || $('rCountry').value; if (!code) return;
   const name = ['rCountry','rState','rCounty'].map(id => $(id)).filter(s => s.value).map(s => s.selectedOptions[0].textContent).join(' · ');
-  const nm = code.startsWith('TW') ? ['台灣', TW[code.slice(3)]].filter(Boolean).join(' · ') : name;
-  $('regMsg').textContent = '下載鳥種清單中，第一次大約要 10 秒…';
+  const nm = UI === 'zh' && code.startsWith('TW') ? ['台灣', TW[code.slice(3)]].filter(Boolean).join(' · ') : name;
+  $('regMsg').textContent = tr('下載鳥種清單中，第一次大約要 10 秒…');
   try { await loadRegion({code, name:nm}); $('regDlg').close(); }
   catch(e) { $('regMsg').textContent = e.message; }
 };
@@ -694,20 +788,20 @@ async function loadRegion(r){
   region = r; regList = list; store.set('region', JSON.stringify(r)); renderCheck();
 }
 function renderCheck(){
-  $('regName').textContent = region ? region.name : '尚未選擇地區';
+  $('regName').textContent = region ? region.name : tr('尚未選擇地區');
   if (!regList) return;
   const done = regList.filter(s => life.has(binom(s.sci))).length;
   $('progBar').style.width = (regList.length ? done / regList.length * 100 : 0) + '%';
-  $('progTxt').textContent = `已看過 ${done} / ${regList.length} 種（${regList.length ? (done/regList.length*100).toFixed(1) : 0}%）`;
-  const q = $('ckq').value.trim().toLowerCase(), f = $('ckf').value;
+  $('progTxt').textContent = tr('已看過 {d} / {t} 種（{p}%）', {d:done, t:regList.length, p:regList.length ? (done/regList.length*100).toFixed(1) : 0});
+  const q = $('ckq').value.trim().toLowerCase(), f = $('ckf').value, zhFirst = $('lang').value === 'zh';
   if (f === 'target' && (!recent || recent.code !== region.code)) {
-    $('ckList').innerHTML = '<div class="empty">查詢這個地區最近 30 天的紀錄中…</div>';
+    $('ckList').innerHTML = `<div class="empty">${tr('查詢這個地區最近 30 天的紀錄中…')}</div>`;
     loadRecent().then(renderCheck).catch(e => $('ckList').innerHTML = `<div class="empty">${esc(e.message)}</div>`);
     return;
   }
   if (recent && recent.code === region.code) {
     const tg = regList.filter(s => !life.has(binom(s.sci)) && recent.by[binom(s.sci)]).length;
-    $('progTxt').textContent += ` · ${tg} 種是目標鳥`;
+    $('progTxt').textContent += tr(' · {n} 種是目標鳥', {n:tg});
   }
   let fam = '', html = '';
   for (const s of regList) {
@@ -716,17 +810,17 @@ function renderCheck(){
     if (f === 'target' && (seen || !hit)) continue;
     if (q && !`${s.zh} ${s.en} ${s.sci}`.toLowerCase().includes(q)) continue;
     if (s.fam !== fam) { fam = s.fam; html += `<div class="fam">${esc(fam)} <i>${esc(s.famSci)}</i></div>`; }
-    html += `<div class="ck${seen?' done':''}" data-code="${esc(s.code)}"><input type="checkbox" aria-label="看過 ${esc(s.zh||s.en)}" data-b="${esc(binom(s.sci))}"${seen?' checked':''}>
-      <div class="nm"><b>${esc(s.zh || s.en)}</b>${s.zh ? ` <span>${esc(s.en)}</span>` : ''} <i>${esc(s.sci)}</i></div><button class="ghost pic">照片</button>${f === 'target' && hit ? `<div class="tgt">📍 ${esc(hit.locName)} · ${ago(daysAgo(hit.obsDt))} <button class="ghost go" data-go="${esc(binom(s.sci))}">看位置</button></div>` : ''}</div>`;
+    html += `<div class="ck${seen?' done':''}" data-code="${esc(s.code)}"><input type="checkbox" aria-label="${tr('看過 {n}', {n:esc(s.zh||s.en)})}" data-b="${esc(binom(s.sci))}"${seen?' checked':''}>
+      <div class="nm"><b>${esc(zhFirst ? (s.zh || s.en) : s.en)}</b>${zhFirst && s.zh ? ` <span>${esc(s.en)}</span>` : ''} <i>${esc(s.sci)}</i></div><button class="ghost pic">${tr('照片')}</button>${f === 'target' && hit ? `<div class="tgt">📍 ${esc(hit.locName)} · ${ago(daysAgo(hit.obsDt))} <button class="ghost go" data-go="${esc(binom(s.sci))}">${tr('看位置')}</button></div>` : ''}</div>`;
   }
-  $('ckList').innerHTML = html || `<div class="empty">${f === 'target' ? '這個地區最近 30 天有紀錄的鳥你都看過了，太強了！' : '沒有符合的鳥種'}</div>`;
+  $('ckList').innerHTML = html || `<div class="empty">${f === 'target' ? tr('這個地區最近 30 天有紀錄的鳥你都看過了，太強了！') : tr('沒有符合的鳥種')}</div>`;
 }
 $('ckList').addEventListener('change', e => {
   const c = e.target.closest('input[data-b]'); if (!c) return;
   markSeen(c.dataset.b, c.checked); c.closest('.ck').classList.toggle('done', c.checked);
   const done = regList.filter(s => life.has(binom(s.sci))).length;     // 只更新進度，不整份重畫，捲動位置才不會跳掉
   $('progBar').style.width = done / regList.length * 100 + '%';
-  $('progTxt').textContent = `已看過 ${done} / ${regList.length} 種（${(done/regList.length*100).toFixed(1)}%）`;
+  $('progTxt').textContent = tr('已看過 {d} / {t} 種（{p}%）', {d:done, t:regList.length, p:(done/regList.length*100).toFixed(1)});
 });
 $('ckList').addEventListener('click', e => {
   const row = e.target.closest('.ck'); if (!row || e.target.closest('input,.detail')) return;
@@ -750,7 +844,7 @@ $('ckList').addEventListener('click', e => {
   const b = e.target.closest('[data-go]'); if (!b) return;
   const o = recent.by[b.dataset.go]; tgtLayer.clearLayers();
   L.marker([o.lat, o.lng]).addTo(tgtLayer).bindPopup(`<div class="popup">${navLinks(o.lat, o.lng, o.locName)}<br>
-    <b>${esc(o.comName)}</b>${o.howMany ? ` ×${esc(o.howMany)}` : ''} · ${ago(daysAgo(o.obsDt))}${o.subId ? ` · <a href="https://ebird.org/checklist/${encodeURIComponent(o.subId)}" target="_blank">eBird 清單</a>` : ''}
+    <b>${esc(o.comName)}</b>${o.howMany ? ` ×${esc(o.howMany)}` : ''} · ${ago(daysAgo(o.obsDt))}${o.subId ? ` · <a href="https://ebird.org/checklist/${encodeURIComponent(o.subId)}" target="_blank">${tr('eBird 清單')}</a>` : ''}
     ${o.locationPrivate ? `<div class="priv">${privNote}</div>` : ''}</div>`).openPopup();
   map.flyTo([o.lat, o.lng], 12);
 });
@@ -765,7 +859,7 @@ $('tabRare').onclick = () => showTab('rare'); $('tabCheck').onclick = () => show
 
 // 匯出精簡生涯名單（只有學名）
 $('exportLife').onclick = () => {
-  const txt = '# 我的生涯鳥種（學名），由稀有鳥地圖匯出\n' + [...life].sort().join('\n') + '\n';
+  const txt = tr('# 我的生涯鳥種（學名），由稀有鳥地圖匯出') + '\n' + [...life].sort().join('\n') + '\n';
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], {type:'text/plain'}));
   a.download = 'lifelist.txt'; document.body.appendChild(a); a.click(); a.remove();
 };
@@ -779,17 +873,17 @@ async function readRemote(){
   const r = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/lifelist.txt?t=${Date.now()}`,
     {headers:{Authorization:'Bearer '+tok(), Accept:'application/vnd.github+json'}});
   if (r.status === 404) return {sha:null, set:new Set()};
-  if (r.status === 401 || r.status === 403) throw new Error('權杖無效或權限不足');
-  if (!r.ok) throw new Error('GitHub 錯誤 ' + r.status);
+  if (r.status === 401 || r.status === 403) throw new Error(tr('權杖無效或權限不足'));
+  if (!r.ok) throw new Error(tr('GitHub 錯誤 {s}', {s:r.status}));
   const j = await r.json(), bin = atob(j.content.replace(/\s/g, ''));
   return {sha:j.sha, set:parseList(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))))};
 }
 let syncT, syncing = false;
-function scheduleSync(){ if (!gh || !tok()) return; setSync('等待同步…'); clearTimeout(syncT); syncT = setTimeout(syncNow, 4000); }
+function scheduleSync(){ if (!gh || !tok()) return; setSync(tr('等待同步…')); clearTimeout(syncT); syncT = setTimeout(syncNow, 4000); }
 async function syncNow(retry = true){
   if (!gh || !tok()) return;
   if (syncing) return scheduleSync();
-  syncing = true; setSync('同步中…');
+  syncing = true; setSync(tr('同步中…'));
   try {
     const {sha, set} = await readRemote();
     const final = new Set([...set, ...local].filter(x => !removed.has(x)));   // 合併其他裝置的紀錄，再扣掉這台取消勾選的
@@ -801,34 +895,34 @@ async function syncNow(retry = true){
         headers:{Authorization:'Bearer '+tok(), Accept:'application/vnd.github+json'},
         body:JSON.stringify({message:`更新生涯紀錄（${final.size} 種）`, content, ...(sha ? {sha} : {})})});
       if (r.status === 409 && retry) { syncing = false; return syncNow(false); }   // 剛好別台裝置也在寫，重來一次
-      if (r.status === 401 || r.status === 403) throw new Error('權杖無效或沒有寫入權限');
-      if (!r.ok) throw new Error('GitHub 錯誤 ' + r.status);
+      if (r.status === 401 || r.status === 403) throw new Error(tr('權杖無效或沒有寫入權限'));
+      if (!r.ok) throw new Error(tr('GitHub 錯誤 {s}', {s:r.status}));
     }
     repoList = final; local.clear(); removed.clear(); saveLife();          // 都存上雲端了，本機暫存清空
-    setSync(`✓ 已同步 ${new Date().toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})}`);
+    setSync(tr('✓ 已同步 {t}', {t:new Date().toLocaleTimeString(UI==='en'?'en-US':'zh-TW', {hour:'2-digit', minute:'2-digit'})}));
     if (regList) renderCheck();
-  } catch(e) { setSync('同步失敗：' + e.message); }
+  } catch(e) { setSync(tr('同步失敗：') + e.message); }
   syncing = false;
 }
-$('ghTok').value = tok() ? '••••••••（已儲存）' : '';
+$('ghTok').value = tok() ? tr('••••••••（已儲存）') : '';
 $('ghSave').onclick = () => {
   const v = $('ghTok').value.trim();
   if (v.startsWith('••')) return syncNow();
-  store.set('ghToken', v); if (!v) { setSync('已移除權杖，改為只存在這台裝置'); return; }
-  $('ghTok').value = '••••••••（已儲存）'; syncNow();
+  store.set('ghToken', v); if (!v) { setSync(tr('已移除權杖，改為只存在這台裝置')); return; }
+  $('ghTok').value = tr('••••••••（已儲存）'); syncNow();
 };
 async function loadRepoList(){
   if (!location.protocol.startsWith('http')) return;
   if (gh && tok()) {
-    try { repoList = (await readRemote()).set; rebuildLife(); setSync('✓ 已同步');
+    try { repoList = (await readRemote()).set; rebuildLife(); setSync(tr('✓ 已同步'));
       if (local.size || removed.size) scheduleSync();       // 這台裝置有還沒上傳的勾選
       if (groups.length) load();
-    } catch(e) { setSync('同步失敗：' + e.message); }
+    } catch(e) { setSync(tr('同步失敗：') + e.message); }
     return;
   }
   try { const r = await fetch('lifelist.txt', {cache:'no-store'}); if (!r.ok) return;
     repoList = parseList(await r.text());
-    rebuildLife(); $('lifeMsg').textContent = `共 ${life.size} 種（含網站上的 lifelist.txt ${repoList.size} 種）`;
+    rebuildLife(); $('lifeMsg').textContent = tr('共 {n} 種（含網站上的 lifelist.txt {m} 種）', {n:life.size, m:repoList.size});
     if (groups.length) load();
   } catch {}
 }
