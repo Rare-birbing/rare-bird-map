@@ -368,6 +368,7 @@ treron vernans
 tringa brevipes
 tringa erythropus
 tringa glareola
+tringa guttifer
 tringa melanoleuca
 tringa nebularia
 tringa ochropus
