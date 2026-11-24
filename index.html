@@ -118,6 +118,8 @@ dialog p{margin:0 0 12px}
  <p><b>我的 eBird 紀錄（選填）</b></p>
  <p style="font-size:13px">到 <a href="https://ebird.org/downloadMyData" target="_blank">ebird.org/downloadMyData</a> 申請下載，eBird 會寄一個 zip 給你，解壓縮後把 <code>MyEBirdData.csv</code> 選進來，就能標出「新種」。</p>
  <p><input type="file" id="lifeFile" accept=".csv" style="width:100%"> <small id="lifeMsg" style="color:var(--muted)"></small></p>
+ <p style="font-size:13px">想讓手機、其他電腦和每日推播都用同一份紀錄：按下面的按鈕下載 <code>lifelist.txt</code>（只有學名，沒有地點日期），上傳到 GitHub 的 repository 覆蓋舊檔即可。</p>
+ <p><button class="ghost" id="exportLife">下載 lifelist.txt</button></p>
  <div class="row" style="justify-content:flex-end">
   <button class="ghost" id="demo">用示範資料</button>
   <button class="ghost" id="closeDlg">關閉</button>
@@ -144,13 +146,16 @@ const binom = s => String(s||'').trim().split(/\s+/).slice(0,2).join(' ').toLowe
 // ===== ① 狀態：上次的設定都記在瀏覽器裡 =====
 let center = JSON.parse(store.get('center') || 'null') || {lat:33.4484, lng:-112.0740, label:'鳳凰城（預設）'};
 let places = JSON.parse(store.get('places') || '[]');
-let life = new Set(JSON.parse(store.get('life') || '[]'));
+// 生涯紀錄 = 這台裝置上的（匯入 CSV + 按「看過了」）∪ 網站上的 lifelist.txt（各裝置和每日推播共用）
+let local = new Set(JSON.parse(store.get('life') || '[]')), repoList = new Set();
+let life = new Set(local);
+const rebuildLife = () => { life = new Set([...local, ...repoList]); };
 let demo = false, groups = [], markers = {};
 $('dist').value = store.get('dist') || 30; $('distV').textContent = $('dist').value;
 $('back').value = store.get('back') || 7;
 $('lang').value = store.get('lang') || 'zh';
 $('onlyNew').checked = store.get('onlyNew') === '1';
-$('lifeMsg').textContent = life.size ? `目前已匯入 ${life.size} 種` : '';
+$('lifeMsg').textContent = life.size ? `目前共 ${life.size} 種` : '';
 
 // ===== ② 地圖 =====
 const map = L.map('map').setView([center.lat, center.lng], 10);
@@ -317,7 +322,8 @@ async function showDetail(row, g){
   if (d) { d.remove(); return; }
   d = document.createElement('div'); d.className = 'detail'; d.innerHTML = '<small style="color:var(--muted)">載入照片中…</small>';
   row.appendChild(d);
-  const links = `<div class="links"><a href="https://ebird.org/species/${encodeURIComponent(g.code)}" target="_blank">eBird 鳥種頁</a> · <a href="https://search.macaulaylibrary.org/catalog?taxonCode=${encodeURIComponent(g.code)}&mediaType=photo" target="_blank">更多照片（Macaulay Library）</a></div>`;
+  const done = life.has(binom(g.sci));
+  const links = `<div class="links">${done ? '<span style="color:var(--muted)">✓ 已在生涯紀錄</span> · ' : `<button data-seen="${esc(binom(g.sci))}" style="min-height:32px;padding:4px 12px;margin-right:6px">✓ 我看過了</button>`}<a href="https://ebird.org/species/${encodeURIComponent(g.code)}" target="_blank">eBird 鳥種頁</a> · <a href="https://search.macaulaylibrary.org/catalog?taxonCode=${encodeURIComponent(g.code)}&mediaType=photo" target="_blank">更多照片（Macaulay Library）</a></div>`;
   try {
     const t = await taxon(binom(g.sci));
     if (!t.id) { d.innerHTML = '<small>找不到這個鳥種的照片（雜交或未定種常會這樣）</small>'+links; return; }
@@ -354,8 +360,8 @@ $('lifeFile').onchange = async e => {
   const rows = parseCsv(await f.text()), head = rows[0].map(h=>h.trim().toLowerCase());
   const col = head.findIndex(h => h==='scientific name' || h==='學名');
   if (col < 0) { $('lifeMsg').textContent = '找不到「Scientific Name」欄位，請確認是 eBird 下載的 CSV'; return; }
-  life = new Set(rows.slice(1).map(r=>binom(r[col])).filter(s=>s.includes(' ')));
-  store.set('life', JSON.stringify([...life])); $('lifeMsg').textContent = `已匯入 ${life.size} 種`; load();
+  local = new Set([...local, ...rows.slice(1).map(r=>binom(r[col])).filter(s=>s.includes(' '))]);
+  store.set('life', JSON.stringify([...local])); rebuildLife(); $('lifeMsg').textContent = `已匯入，現在共 ${life.size} 種`; load();
 };
 
 // ===== 清單：收合 + 拖曳調寬 =====
@@ -406,8 +412,30 @@ function sampleData(){
     locId:L0[l][0], locName:L0[l][1], lat:L0[l][2], lng:L0[l][3], obsDt:t(d), howMany:1+(i%2), obsValid:i%3!==0, subId:''}));
 }
 
+// ✓ 我看過了：馬上加進這台裝置的生涯紀錄
+$('list').addEventListener('click', e => {
+  const b = e.target.closest('[data-seen]'); if (!b) return;
+  local.add(b.dataset.seen); store.set('life', JSON.stringify([...local])); rebuildLife();
+  b.outerHTML = '<span style="color:var(--muted)">✓ 已加入，下次同步記得更新 lifelist.txt</span> ·';
+});
+// 匯出精簡生涯名單（只有學名）
+$('exportLife').onclick = () => {
+  const txt = '# 我的生涯鳥種（學名），由稀有鳥地圖匯出\n' + [...life].sort().join('\n') + '\n';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], {type:'text/plain'}));
+  a.download = 'lifelist.txt'; document.body.appendChild(a); a.click(); a.remove();
+};
+// 網站上若有 lifelist.txt 就一起讀進來
+async function loadRepoList(){
+  if (!location.protocol.startsWith('http')) return;
+  try { const r = await fetch('lifelist.txt', {cache:'no-store'}); if (!r.ok) return;
+    repoList = new Set((await r.text()).split('\n').filter(l=>l.trim() && !l.startsWith('#')).map(binom));
+    rebuildLife(); $('lifeMsg').textContent = `共 ${life.size} 種（含網站上的 lifelist.txt ${repoList.size} 種）`;
+    if (groups.length) load();
+  } catch {}
+}
 renderPlaces();
 load();
+loadRepoList();
 // 放上網路後註冊 Service Worker，讓手機可以「加到主畫面」
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 }

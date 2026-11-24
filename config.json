@@ -1,0 +1,8 @@
+{
+  "site": "https://bug4lol1177-alt.github.io/rare-bird-map/",
+  "back": 2,
+  "only_new": true,
+  "places": [
+    { "name": "鳳凰城", "lat": 33.4484, "lng": -112.074, "dist": 50 }
+  ]
+}
