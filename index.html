@@ -72,6 +72,7 @@ body.dragging{cursor:col-resize;user-select:none}
 .badge{font-size:11px;border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-left:4px;font-style:normal;white-space:nowrap;display:inline-block;vertical-align:2px;line-height:1.5}
 .badge.new{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
 .popup .loc{font-size:15px;font-weight:700;text-decoration:none}.popup .loc:hover{text-decoration:underline}
+.popup .alt{margin-left:8px;font-size:12px}.popup .alt a{color:#6b746f}
 .popup .loc::after{content:" ↗";font-weight:400;font-size:13px}
 .popup ul{list-style:none;padding:0;margin:8px 0 0}
 .popup li{display:grid;grid-template-columns:minmax(0,1fr) 44px 58px 50px 40px;gap:8px;align-items:center;padding:5px 0;border-top:1px solid #e9e2d3;white-space:nowrap}
@@ -183,6 +184,8 @@ dialog p{margin:0 0 12px}
  <p><b>我的 eBird 紀錄（選填）</b></p>
  <p style="font-size:13px">到 <a href="https://ebird.org/downloadMyData" target="_blank">ebird.org/downloadMyData</a> 申請下載，eBird 會寄一個 zip 給你，解壓縮後把 <code>MyEBirdData.csv</code> 選進來，就能標出「新種」。也可以選之前備份的 <code>lifelist.txt</code> 還原。</p>
  <p><input type="file" id="lifeFile" accept=".csv,.txt" style="width:100%"> <small id="lifeMsg" style="color:var(--muted)"></small></p>
+ <p><label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-size:15px"><b>導航用</b>
+  <select id="navApp"><option value="google">Google 地圖</option><option value="apple">Apple 地圖</option></select></label></p>
  <p><b>自動同步到 GitHub（網站主人用）</b></p>
  <p style="font-size:13px">貼上只能修改這個 repository 的 GitHub 權杖後，你打勾的鳥種會自動存進 <code>lifelist.txt</code>（只有學名，沒有地點日期），手機、電腦和每日推播都會用同一份。<a href="https://github.com/settings/personal-access-tokens/new" target="_blank">建立權杖</a>。不要在別人的電腦上貼。</p>
  <p class="row"><input id="ghTok" type="password" placeholder="github_pat_…" autocomplete="off" style="flex:1"><button id="ghSave">儲存並同步</button></p>
@@ -286,6 +289,13 @@ function status(msg, err){ $('status').textContent = msg; $('status').className 
 const kind = o => / x /.test(o.sciName) && o.sciName.split(' x ')[0].trim().split(/\s+/).length < 3 ? 'hybrid' : (/\bsp\.|\//.test(o.sciName + ' ' + o.comName) ? 'spuh' : 'species');
 const gkey = o => kind(o) === 'species' ? binom(o.sciName) : o.speciesCode;
 const kindBadge = o => ({hybrid:'<span class="badge">雜交</span>', spuh:'<span class="badge">未定種</span>'})[kind(o)] || '';
+const isApple = /iPhone|iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+const navApp = () => store.get('navApp') || (isApple ? 'apple' : 'google');
+const NAV = {google:{name:'Google 地圖', url:(a,b)=>`https://www.google.com/maps/dir/?api=1&destination=${a},${b}`},
+             apple:{name:'Apple 地圖', url:(a,b)=>`https://maps.apple.com/?daddr=${a},${b}&dirflg=d`}};
+const navUrl = (a, b, app = navApp()) => NAV[app].url(a, b);
+const navLinks = (a, b, name) => { const app = navApp(), other = app === 'google' ? 'apple' : 'google';
+  return `<a class="loc" href="${navUrl(a,b)}" target="_blank" title="用${NAV[app].name}導航過去">${esc(name)}</a><small class="alt"><a href="${navUrl(a,b,other)}" target="_blank">改用${NAV[other].name}</a></small>`; };
 const privNote = '🏠 可能是私人地點（例如自家庭院），前往前請先確認是否開放';
 const isNew = o => life.size > 0 && kind(o) === 'species' && !life.has(binom(o.sciName));
 
@@ -410,7 +420,7 @@ function render(rows){
       if (o.days < g.best.days) g.best = o; g.days = g.best.days; g.subId = g.best.subId; g.obsValid = g.obsValid || o.obsValid; });
     const items = Object.values(sp).sort((a, b) => b.maxN - a.maxN || b.reps - a.reps || a.days - b.days);
     // 地點名稱 → 導航；鳥名 → 那張 eBird 清單；右邊放小圖
-    const html = `<div class="popup"><a class="loc" href="https://www.google.com/maps/dir/?api=1&destination=${o0.lat},${o0.lng}" target="_blank" title="用 Google 地圖導航過去">${esc(o0.locName)}</a><br><small>距離 ${o0.km.toFixed(1)} km · 點地名導航、點鳥名看 eBird 清單</small>${o0.locationPrivate?`<div class="priv">${privNote}</div>`:''}<ul>${
+    const html = `<div class="popup">${navLinks(o0.lat, o0.lng, o0.locName)}<br><small>距離 ${o0.km.toFixed(1)} km · 點地名導航、點鳥名看 eBird 清單</small>${o0.locationPrivate?`<div class="priv">${privNote}</div>`:''}<ul>${
       '<li class="head"><span>鳥種（依數量排序）</span><span class="num">數量</span><span class="ago">最近</span><span class="ok okh">審核</span><span></span></li>' +
       items.map(o=>`<li><span class="nm">${o.subId?`<a href="https://ebird.org/checklist/${encodeURIComponent(o.subId)}" target="_blank" title="${esc(o.sciName)}${o.reps>1?` · ${o.reps} 筆回報`:''}">${esc(o.comName)}</a>`:`<b title="${esc(o.sciName)}">${esc(o.comName)}</b>`}${isNew(o)?'<span class="badge new">新種</span>':kindBadge(o)}</span>
         <span class="num${o.maxN?'':' none'}">${o.maxN?`×${o.maxN}`:'—'}</span>
@@ -420,7 +430,7 @@ function render(rows){
     }</ul><button class="share" data-loc="${esc(o0.locId)}">分享這個地點的鳥況</button></div>`;
     shareTxt[o0.locId] = `📍 ${o0.locName}${o0.locationPrivate ? '（可能是私人地點）' : ''}\n` +
       items.map(o => `• ${o.comName}${o.maxN ? ` ×${o.maxN}` : ''}（${ago(o.days)}）`).join('\n') +
-      `\n導航：https://www.google.com/maps/dir/?api=1&destination=${o0.lat},${o0.lng}\n— 來自稀有鳥地圖 ${location.origin}${location.pathname}`;
+      `\nGoogle 地圖：${navUrl(o0.lat, o0.lng, 'google')}\nApple 地圖：${navUrl(o0.lat, o0.lng, 'apple')}\n— 來自稀有鳥地圖 ${location.origin}${location.pathname}`;
     const m = L.circleMarker([o0.lat,o0.lng], {radius:7+Math.min(items.length,5)*1.5, color:'#fff', weight:2, fillColor:color(f), fillOpacity:.9})
       .bindPopup(html, {maxWidth:Math.min(600, innerWidth-60), minWidth:Math.min(460, innerWidth-60)}).addTo(layer);
     items.forEach(o => (markers[o.key] ||= []).push(m));
@@ -549,6 +559,8 @@ $('lang').onchange = () => { store.set('lang', $('lang').value); load(); };
 $('onlyNew').onchange = () => { store.set('onlyNew', $('onlyNew').checked?'1':'0');
   if ($('onlyNew').checked && !life.size) { $('dlg').showModal(); $('lifeMsg').textContent='先匯入你的 eBird 紀錄，才知道哪些是新種'; } load(); };
 $('settings').onclick = () => { $('key').value = store.get('key') || ''; $('dlg').showModal(); };
+$('navApp').value = navApp();
+$('navApp').onchange = () => { store.set('navApp', $('navApp').value); if (groups.length) load(); };
 $('closeDlg').onclick = () => $('dlg').close();
 $('save').onclick = () => { const k=$('key').value.trim(); if(!k) return; store.set('key',k); demo=false; $('dlg').close(); load(); };
 $('demo').onclick = () => { demo=true; $('dlg').close(); load(); };
@@ -709,7 +721,7 @@ async function loadRecent(){
 $('ckList').addEventListener('click', e => {
   const b = e.target.closest('[data-go]'); if (!b) return;
   const o = recent.by[b.dataset.go]; tgtLayer.clearLayers();
-  L.marker([o.lat, o.lng]).addTo(tgtLayer).bindPopup(`<div class="popup"><a class="loc" href="https://www.google.com/maps/dir/?api=1&destination=${o.lat},${o.lng}" target="_blank">${esc(o.locName)}</a><br>
+  L.marker([o.lat, o.lng]).addTo(tgtLayer).bindPopup(`<div class="popup">${navLinks(o.lat, o.lng, o.locName)}<br>
     <b>${esc(o.comName)}</b>${o.howMany ? ` ×${esc(o.howMany)}` : ''} · ${ago(daysAgo(o.obsDt))}${o.subId ? ` · <a href="https://ebird.org/checklist/${encodeURIComponent(o.subId)}" target="_blank">eBird 清單</a>` : ''}
     ${o.locationPrivate ? `<div class="priv">${privNote}</div>` : ''}</div>`).openPopup();
   map.flyTo([o.lat, o.lng], 12);
