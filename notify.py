@@ -10,6 +10,15 @@ cfg = json.load(open("config.json", encoding="utf-8"))
 def binom(s):
     return " ".join(str(s).strip().split()[:2]).lower()
 
+def kind(o):
+    # 雜交種、未定種不算生涯新種；同種亞種交界（例如 Colaptes auratus auratus x cafer）算原種
+    sci, com = o["sciName"], o["comName"]
+    if " x " in sci and len(sci.split(" x ")[0].split()) < 3:
+        return "hybrid"
+    if "sp." in sci or "/" in sci or "/" in com:
+        return "spuh"
+    return "species"
+
 life = set()
 if os.path.exists("lifelist.txt"):
     life = {binom(l) for l in open("lifelist.txt", encoding="utf-8") if l.strip() and not l.startswith("#")}
@@ -20,7 +29,7 @@ seen = {k: d for k, d in seen.items() if datetime.fromisoformat(d).date() > toda
 
 def ebird(p, loc):
     q = urllib.parse.urlencode({"lat": p["lat"], "lng": p["lng"], "dist": p.get("dist", 30),
-                                "back": cfg.get("back", 2), "detail": "simple", "sppLocale": loc})
+                                "back": cfg.get("back", 2), "detail": "full", "sppLocale": loc})
     req = urllib.request.Request("https://api.ebird.org/v2/data/obs/geo/recent/notable?" + q, headers={"X-eBirdApiToken": KEY})
     return json.load(urllib.request.urlopen(req, timeout=30))
 
@@ -40,6 +49,8 @@ for p in cfg["places"]:
     zh = {o["speciesCode"]: o["comName"] for o in ebird(p, "zh")}
     new = {}
     for o in rows:
+        if kind(o) != "species":
+            continue
         if cfg.get("only_new", True) and life and binom(o["sciName"]) in life:
             continue
         k = f'{o["subId"]}:{o["speciesCode"]}'
@@ -47,9 +58,10 @@ for p in cfg["places"]:
             continue
         seen[k] = today.isoformat()
         o["km"] = km(p["lat"], p["lng"], o["lat"], o["lng"])
-        s = new.setdefault(o["speciesCode"], o)          # 同一種鳥只列最近的那筆
+        k = binom(o["sciName"])                         # 亞種併入原種，同一種鳥只列最近的那筆
+        s = new.setdefault(k, o)
         if o["km"] < s["km"]:
-            new[o["speciesCode"]] = o
+            new[k] = o
     if not new:
         print(p["name"], "沒有新的紀錄")
         continue
@@ -58,7 +70,8 @@ for p in cfg["places"]:
         name = zh.get(o["speciesCode"], o["comName"])
         if name != o["comName"]:
             name = f'{name} {o["comName"]}'
-        lines.append(f'• {name}｜{o["locName"]}｜{o["km"]:.0f} km｜{o["obsDt"][5:10]}')
+        priv = "（可能是私人地點）" if o.get("locationPrivate") else ""
+        lines.append(f'• {name}｜{o["locName"]}{priv}｜{o["km"]:.0f} km｜{o["obsDt"][5:10]}')
     label = "種新種" if life and cfg.get("only_new", True) else "種稀有鳥"
     push(f'{p["name"]}：{len(new)} {label}', "\n".join(lines[:15]) + ("\n…還有更多" if len(lines) > 15 else ""))
     print(p["name"], "已推播", len(new), "種")
