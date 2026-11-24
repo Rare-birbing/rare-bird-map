@@ -310,7 +310,11 @@ const EN = {
  '••••••••（已儲存）':'•••••••• (saved)','已移除權杖，改為只存在這台裝置':'Token removed — your list stays on this device only','✓ 已同步':'✓ Synced',
  '共 {n} 種（含網站上的 lifelist.txt {m} 種）':'{n} species (incl. {m} from lifelist.txt)','台灣':'Taiwan'
 };
-const tr = (k, v = {}) => (UI === 'en' && EN[k] !== undefined ? EN[k] : k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? '');
+const tr = (k, v = {}) => { let r = (UI === 'en' && EN[k] !== undefined ? EN[k] : k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? '');
+  if (UI === 'en') r = r.replace(/\b1 reports\b/g, '1 report').replace(/\b1 targets\b/g, '1 target').replace(/\b1 rare species\b/g, '1 rare species');
+  return r; };
+// 地點名稱：之前用另一種語言存的預設名稱，顯示時換成目前的語言
+const labelOf = l => { if (UI === 'en') return tr(l); const k = Object.keys(EN).find(z => EN[z] === l); return k && /位置|選的點|預設/.test(k) ? k : l; };
 document.documentElement.lang = UI === 'en' ? 'en' : 'zh-Hant';
 if (UI === 'en') {     // 換掉網頁上固定的中文
   document.querySelectorAll('[data-en]').forEach(el => el.innerHTML = el.dataset.en);
@@ -452,7 +456,7 @@ function renderPlaces(){
   $('plist').innerHTML = places.length ? places.map((p,i)=>`<div><span>${esc(p.name)} <small style="color:var(--muted)">${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}</small></span><button class="ghost" data-del="${i}">${tr('刪除')}</button></div>`).join('') : `<small style="color:var(--muted)">${tr('還沒有')}</small>`;
 }
 $('places').onchange = () => { const p = places[$('places').value]; if (p) { setCenter(p.lat, p.lng, p.name); } };
-$('savePlace').onclick = () => { $('placeName').value = /預設|選的點|default|Point on map/.test(center.label) ? '' : center.label; $('placeDlg').showModal(); $('placeName').focus(); };
+$('savePlace').onclick = () => { $('placeName').value = /預設|選的點|我的位置|default|Point on map|My location/.test(center.label) ? '' : center.label; $('placeDlg').showModal(); $('placeName').focus(); };
 $('placeOk').onclick = () => { const n = $('placeName').value.trim(); if (!n) return;
   places.push({name:n, lat:center.lat, lng:center.lng}); center.label = n; store.set('center', JSON.stringify(center));
   $('where').textContent = n; renderPlaces(); $('placeDlg').close(); };
@@ -483,14 +487,14 @@ async function fetchEbird(){
 }
 
 async function load(){
-  $('where').textContent = center.label;
+  $('where').textContent = labelOf(center.label);
   if (!store.get('key')) demo = true;          // 還沒有金鑰：先看示範資料，不要一打開就跳設定
   $('banner').hidden = !demo;
   status(tr('讀取中…'));
   try { render(demo ? sampleData() : await fetchEbird()); }
   catch(e) {
     layer.clearLayers(); groups = []; markers = {};
-    $('list').innerHTML = `<div class="empty">${tr('{label} 的資料沒有載入成功，所以這裡先不顯示任何鳥。', {label:esc(center.label)})}</div>`;
+    $('list').innerHTML = `<div class="empty">${tr('{label} 的資料沒有載入成功，所以這裡先不顯示任何鳥。', {label:esc(labelOf(center.label))})}</div>`;
     status((e.message||tr('讀取失敗')) + (e instanceof TypeError ? tr('（可能是網路問題，或瀏覽器擋下了連線）') : ''), true);
   }
 }
@@ -680,9 +684,9 @@ $('settings').onclick = () => { $('key').value = store.get('key') || ''; $('dlg'
 $('navApp').value = navApp();
 $('navApp').onchange = () => { store.set('navApp', $('navApp').value); if (groups.length) load(); };
 $('uiLang').value = UI;
-$('uiLang').onchange = () => { store.set('ui', $('uiLang').value); location.reload(); };
+$('uiLang').onchange = () => { store.set('ui', $('uiLang').value); store.set('lang', $('uiLang').value); location.reload(); };
 $('uiSwitch').textContent = UI === 'en' ? '中文' : 'EN';
-$('uiSwitch').onclick = () => { store.set('ui', UI === 'en' ? 'zh' : 'en'); location.reload(); };
+$('uiSwitch').onclick = () => { const n = UI === 'en' ? 'zh' : 'en'; store.set('ui', n); store.set('lang', n); location.reload(); };
 $('closeDlg').onclick = () => $('dlg').close();
 $('save').onclick = () => { const k=$('key').value.trim(); if(!k) return; store.set('key',k); demo=false; $('dlg').close(); load(); };
 $('demo').onclick = () => { demo=true; $('dlg').close(); load(); };
