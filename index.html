@@ -72,12 +72,19 @@ body.dragging{cursor:col-resize;user-select:none}
 .popup .loc{font-size:15px;font-weight:700;text-decoration:none}.popup .loc:hover{text-decoration:underline}
 .popup .loc::after{content:" ↗";font-weight:400;font-size:13px}
 .popup ul{list-style:none;padding:0;margin:8px 0 0}
-.popup li{display:grid;grid-template-columns:minmax(0,1fr) auto 40px;gap:10px;align-items:center;padding:5px 0;border-top:1px solid #e9e2d3;white-space:nowrap}
+.popup li{display:grid;grid-template-columns:minmax(0,1fr) 44px 58px 50px 40px;gap:8px;align-items:center;padding:5px 0;border-top:1px solid #e9e2d3;white-space:nowrap}
+.popup li.head{border-top:0;padding:0;font-size:11px;color:#8a918d}
+.popup .nm{display:flex;align-items:center;gap:6px;min-width:0}
+.popup .nm a,.popup .nm b{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.popup .nm .badge{flex:none;margin:0}
+.popup .num{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.popup .num.none{font-weight:400;color:#aab1ad}
+.popup .ago{text-align:right;font-size:12px;color:#6b746f}
+.popup .ok{text-align:center}.popup .ok .badge{margin:0}
 .popup li a{color:inherit;font-weight:700;text-decoration:none}.popup li a:hover{color:var(--accent);text-decoration:underline}
-.popup .when{font-size:12px;color:#6b746f}
 .popup img{width:40px;height:40px;border-radius:6px;object-fit:cover;background:#e9e2d3;display:block}
 .leaflet-popup-content{margin:12px 14px}
-@media(max-width:600px){.popup li{white-space:normal}}
+@media(max-width:600px){.popup li{grid-template-columns:minmax(0,1fr) 36px 52px 40px}.popup .ok,.popup li.head .okh{display:none}}
 dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);max-width:460px;width:calc(100% - 32px);padding:20px}
 dialog::backdrop{background:rgba(0,0,0,.4)}
 dialog p{margin:0 0 12px}
@@ -332,15 +339,23 @@ function render(rows){
   const byLoc = {}; rows.forEach(o => (byLoc[o.locId] ||= []).push(o));
   Object.values(byLoc).forEach(list => {
     const f = Math.min(...list.map(o=>o.days)), o0 = list[0], seen = {};
-    const items = list.filter(o => !seen[o.speciesCode] && (seen[o.speciesCode]=1));
+    const sp = {};
+    list.forEach(o => { const k = o.speciesCode, n = parseInt(o.howMany) || 0;   // eBird 只寫「有看到」沒寫數量時算 0
+      if (!sp[k]) sp[k] = {...o, maxN:n, reps:0, best:o};
+      const g = sp[k]; g.reps++; if (n > g.maxN) g.maxN = n;
+      if (o.days < g.best.days) g.best = o; g.days = g.best.days; g.subId = g.best.subId; g.obsValid = g.obsValid || o.obsValid; });
+    const items = Object.values(sp).sort((a, b) => b.maxN - a.maxN || b.reps - a.reps || a.days - b.days);
     // 地點名稱 → 導航；鳥名 → 那張 eBird 清單；右邊放小圖
     const html = `<div class="popup"><a class="loc" href="https://www.google.com/maps/dir/?api=1&destination=${o0.lat},${o0.lng}" target="_blank" title="用 Google 地圖導航過去">${esc(o0.locName)}</a><br><small>距離 ${o0.km.toFixed(1)} km · 點地名導航、點鳥名看 eBird 清單</small><ul>${
-      items.map(o=>`<li><span>${o.subId?`<a href="https://ebird.org/checklist/${encodeURIComponent(o.subId)}" target="_blank" title="${esc(o.sciName)}">${esc(o.comName)}</a>`:`<b>${esc(o.comName)}</b>`}${isNew(o)?'<span class="badge new">新種</span>':''}</span>
-        <span class="when">${o.howMany?`×${esc(o.howMany)} · `:''}${ago(o.days)}${o.obsValid?'<span class="badge">已審核</span>':''}</span>
+      '<li class="head"><span>鳥種（依數量排序）</span><span class="num">數量</span><span class="ago">最近</span><span class="ok okh">審核</span><span></span></li>' +
+      items.map(o=>`<li><span class="nm">${o.subId?`<a href="https://ebird.org/checklist/${encodeURIComponent(o.subId)}" target="_blank" title="${esc(o.sciName)}${o.reps>1?` · ${o.reps} 筆回報`:''}">${esc(o.comName)}</a>`:`<b title="${esc(o.sciName)}">${esc(o.comName)}</b>`}${isNew(o)?'<span class="badge new">新種</span>':''}</span>
+        <span class="num${o.maxN?'':' none'}">${o.maxN?`×${o.maxN}`:'—'}</span>
+        <span class="ago">${ago(o.days)}</span>
+        <span class="ok">${o.obsValid?'<span class="badge">已審核</span>':''}</span>
         <img alt="" data-sci="${esc(binom(o.sciName))}"></li>`).join('')
     }</ul></div>`;
     const m = L.circleMarker([o0.lat,o0.lng], {radius:7+Math.min(items.length,5)*1.5, color:'#fff', weight:2, fillColor:color(f), fillOpacity:.9})
-      .bindPopup(html, {maxWidth:Math.min(560, innerWidth-60), minWidth:Math.min(280, innerWidth-60)}).addTo(layer);
+      .bindPopup(html, {maxWidth:Math.min(600, innerWidth-60), minWidth:Math.min(460, innerWidth-60)}).addTo(layer);
     items.forEach(o => (markers[o.speciesCode] ||= []).push(m));
   });
 
