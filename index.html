@@ -127,7 +127,7 @@ dialog p{margin:0 0 12px}
    <div class="ckhead">
     <div class="row"><b id="regName">尚未選擇地區</b><button class="ghost" id="pickRegion">選擇地區</button></div>
     <div class="bar"><i id="progBar"></i></div>
-    <small id="progTxt" style="color:var(--muted)"></small>
+    <div class="row" style="justify-content:space-between"><small id="progTxt" style="color:var(--muted)"></small><small class="syncmsg" style="color:var(--muted)"></small></div>
     <div class="row"><input id="ckq" placeholder="搜尋中文、英文或學名"><select id="ckf" aria-label="篩選"><option value="all">全部</option><option value="todo">還沒看過</option><option value="done">已看過</option></select></div>
    </div>
    <div id="ckList"><div class="empty">先選一個地區，就會列出 eBird 在那裡歷年紀錄過的所有鳥種（含過境鳥和迷鳥），看過的打勾就好。</div></div>
@@ -145,8 +145,11 @@ dialog p{margin:0 0 12px}
  <p><b>我的 eBird 紀錄（選填）</b></p>
  <p style="font-size:13px">到 <a href="https://ebird.org/downloadMyData" target="_blank">ebird.org/downloadMyData</a> 申請下載，eBird 會寄一個 zip 給你，解壓縮後把 <code>MyEBirdData.csv</code> 選進來，就能標出「新種」。</p>
  <p><input type="file" id="lifeFile" accept=".csv" style="width:100%"> <small id="lifeMsg" style="color:var(--muted)"></small></p>
- <p style="font-size:13px">想讓手機、其他電腦和每日推播都用同一份紀錄：按下面的按鈕下載 <code>lifelist.txt</code>（只有學名，沒有地點日期），上傳到 GitHub 的 repository 覆蓋舊檔即可。</p>
- <p><button class="ghost" id="exportLife">下載 lifelist.txt</button></p>
+ <p><b>自動同步到 GitHub（網站主人用）</b></p>
+ <p style="font-size:13px">貼上只能修改這個 repository 的 GitHub 權杖後，你打勾的鳥種會自動存進 <code>lifelist.txt</code>（只有學名，沒有地點日期），手機、電腦和每日推播都會用同一份。<a href="https://github.com/settings/personal-access-tokens/new" target="_blank">建立權杖</a>。不要在別人的電腦上貼。</p>
+ <p class="row"><input id="ghTok" type="password" placeholder="github_pat_…" autocomplete="off" style="flex:1"><button id="ghSave">儲存並同步</button></p>
+ <p><small class="syncmsg" style="color:var(--muted)"></small></p>
+ <p><button class="ghost" id="exportLife">下載 lifelist.txt（備份用）</button></p>
  <div class="row" style="justify-content:flex-end">
   <button class="ghost" id="demo">用示範資料</button>
   <button class="ghost" id="closeDlg">關閉</button>
@@ -189,7 +192,7 @@ let life = new Set(local);
 let removed = new Set(JSON.parse(store.get('lifeRemoved') || '[]'));   // 手動取消勾選的（連網站清單裡的也蓋掉）
 const rebuildLife = () => { life = new Set([...local, ...repoList].filter(x => !removed.has(x))); };
 const saveLife = () => { store.set('life', JSON.stringify([...local])); store.set('lifeRemoved', JSON.stringify([...removed])); rebuildLife(); };
-const markSeen = (b, yes) => { if (yes) { local.add(b); removed.delete(b); } else { local.delete(b); removed.add(b); } saveLife(); };
+const markSeen = (b, yes) => { if (yes) { local.add(b); removed.delete(b); } else { local.delete(b); removed.add(b); } saveLife(); scheduleSync(); };
 rebuildLife();
 let demo = false, groups = [], markers = {};
 $('dist').value = store.get('dist') || 30; $('distV').textContent = $('dist').value;
@@ -402,7 +405,7 @@ $('lifeFile').onchange = async e => {
   const col = head.findIndex(h => h==='scientific name' || h==='學名');
   if (col < 0) { $('lifeMsg').textContent = '找不到「Scientific Name」欄位，請確認是 eBird 下載的 CSV'; return; }
   local = new Set([...local, ...rows.slice(1).map(r=>binom(r[col])).filter(s=>s.includes(' '))]);
-  store.set('life', JSON.stringify([...local])); rebuildLife(); $('lifeMsg').textContent = `已匯入，現在共 ${life.size} 種`; load();
+  store.set('life', JSON.stringify([...local])); rebuildLife(); $('lifeMsg').textContent = `已匯入，現在共 ${life.size} 種`; load(); scheduleSync();
 };
 
 // ===== 清單：收合 + 拖曳調寬 =====
@@ -570,10 +573,64 @@ $('exportLife').onclick = () => {
   a.download = 'lifelist.txt'; document.body.appendChild(a); a.click(); a.remove();
 };
 // 網站上若有 lifelist.txt 就一起讀進來
+// ===== ⑨ 自動同步：用 GitHub API 讀寫 repository 裡的 lifelist.txt =====
+const gh = (() => { const m = location.hostname.match(/^(.+)\.github\.io$/); return m ? {owner:m[1], repo:location.pathname.split('/')[1]} : null; })();
+const tok = () => store.get('ghToken');
+const parseList = t => new Set(t.split('\n').filter(l => l.trim() && !l.startsWith('#')).map(binom));
+const setSync = m => document.querySelectorAll('.syncmsg').forEach(x => x.textContent = m);
+async function readRemote(){
+  const r = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/lifelist.txt?t=${Date.now()}`,
+    {headers:{Authorization:'Bearer '+tok(), Accept:'application/vnd.github+json'}});
+  if (r.status === 404) return {sha:null, set:new Set()};
+  if (r.status === 401 || r.status === 403) throw new Error('權杖無效或權限不足');
+  if (!r.ok) throw new Error('GitHub 錯誤 ' + r.status);
+  const j = await r.json(), bin = atob(j.content.replace(/\s/g, ''));
+  return {sha:j.sha, set:parseList(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))))};
+}
+let syncT, syncing = false;
+function scheduleSync(){ if (!gh || !tok()) return; setSync('等待同步…'); clearTimeout(syncT); syncT = setTimeout(syncNow, 4000); }
+async function syncNow(retry = true){
+  if (!gh || !tok()) return;
+  if (syncing) return scheduleSync();
+  syncing = true; setSync('同步中…');
+  try {
+    const {sha, set} = await readRemote();
+    const final = new Set([...set, ...local].filter(x => !removed.has(x)));   // 合併其他裝置的紀錄，再扣掉這台取消勾選的
+    const same = final.size === set.size && [...final].every(x => set.has(x));
+    if (!same) {
+      const txt = '# 我的生涯鳥種（學名），由稀有鳥地圖自動同步\n' + [...final].sort().join('\n') + '\n';
+      let bin = ''; new TextEncoder().encode(txt).forEach(c => bin += String.fromCharCode(c)); const content = btoa(bin);
+      const r = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/lifelist.txt`, {method:'PUT',
+        headers:{Authorization:'Bearer '+tok(), Accept:'application/vnd.github+json'},
+        body:JSON.stringify({message:`更新生涯紀錄（${final.size} 種）`, content, ...(sha ? {sha} : {})})});
+      if (r.status === 409 && retry) { syncing = false; return syncNow(false); }   // 剛好別台裝置也在寫，重來一次
+      if (r.status === 401 || r.status === 403) throw new Error('權杖無效或沒有寫入權限');
+      if (!r.ok) throw new Error('GitHub 錯誤 ' + r.status);
+    }
+    repoList = final; local.clear(); removed.clear(); saveLife();          // 都存上雲端了，本機暫存清空
+    setSync(`✓ 已同步 ${new Date().toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})}`);
+    if (regList) renderCheck();
+  } catch(e) { setSync('同步失敗：' + e.message); }
+  syncing = false;
+}
+$('ghTok').value = tok() ? '••••••••（已儲存）' : '';
+$('ghSave').onclick = () => {
+  const v = $('ghTok').value.trim();
+  if (v.startsWith('••')) return syncNow();
+  store.set('ghToken', v); if (!v) { setSync('已移除權杖，改為只存在這台裝置'); return; }
+  $('ghTok').value = '••••••••（已儲存）'; syncNow();
+};
 async function loadRepoList(){
   if (!location.protocol.startsWith('http')) return;
+  if (gh && tok()) {
+    try { repoList = (await readRemote()).set; rebuildLife(); setSync('✓ 已同步');
+      if (local.size || removed.size) scheduleSync();       // 這台裝置有還沒上傳的勾選
+      if (groups.length) load();
+    } catch(e) { setSync('同步失敗：' + e.message); }
+    return;
+  }
   try { const r = await fetch('lifelist.txt', {cache:'no-store'}); if (!r.ok) return;
-    repoList = new Set((await r.text()).split('\n').filter(l=>l.trim() && !l.startsWith('#')).map(binom));
+    repoList = parseList(await r.text());
     rebuildLife(); $('lifeMsg').textContent = `共 ${life.size} 種（含網站上的 lifelist.txt ${repoList.size} 種）`;
     if (groups.length) load();
   } catch {}
