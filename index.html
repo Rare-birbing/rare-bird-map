@@ -229,7 +229,6 @@ map.on('popupopen', async e => {
   for (const img of e.popup.getElement().querySelectorAll('img[data-sci]')) {
     try { const t = await taxon(img.dataset.sci); if (t.sq) img.src = t.sq; } catch {}
   }
-  e.popup.update();
 });
 const me = L.circleMarker([center.lat, center.lng], {radius:8, color:'#fff', weight:3, fillColor:'#2a6df4', fillOpacity:1}).addTo(map);
 const ring = L.circle([center.lat, center.lng], {radius:$('dist').value*1000, color:'#2a6df4', weight:1, fill:false, dashArray:'4 6'}).addTo(map);
