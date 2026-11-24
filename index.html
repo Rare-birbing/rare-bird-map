@@ -734,6 +734,14 @@ const TW = {CHA:'彰化縣',CYI:'嘉義市',CYQ:'嘉義縣',HSZ:'新竹市',HSQ:
   MIA:'苗栗縣',NAN:'南投縣',NWT:'新北市',PEN:'澎湖縣',PIF:'屏東縣',TAO:'桃園市',TNN:'臺南市',TPE:'臺北市',TTT:'臺東縣',TXG:'臺中市',YUN:'雲林縣'};
 let dn = null; try { dn = new Intl.DisplayNames(['zh-Hant'], {type:'region'}); } catch {}
 if (UI === 'zh' && region && /^TW(-|$)/.test(region.code)) region.name = ['台灣', TW[region.code.slice(3)]].filter(Boolean).join(' · ');
+// 英文介面：用 eBird 地區清單的英文名稱重新組合（之前在中文介面存的名字含中文）
+if (UI === 'en' && region && /[\u4e00-\u9fff]/.test(region.name)) {
+  const parts = region.code.split('-'), find = (k, c) => (JSON.parse(store.get(k) || '[]').find(r => r.code === c) || {}).name;
+  const en = [find('rl:country:world', parts[0]) || parts[0],
+              parts[1] && find(`rl:subnational1:${parts[0]}`, `${parts[0]}-${parts[1]}`),
+              parts[2] && find(`rl:subnational2:${parts[0]}-${parts[1]}`, region.code)].filter(Boolean);
+  region.name = en.length > 1 || !parts[1] ? en.join(' · ') : region.name.replace(/[\u4e00-\u9fff]+\s*/g, '').trim() || region.code;
+}
 const zhRegion = r => { if (UI !== 'zh') return r.name;
   if (/^TW-[A-Z]{3}$/.test(r.code) && TW[r.code.slice(3)]) return TW[r.code.slice(3)];
   if (/^[A-Z]{2}$/.test(r.code)) { try { const z = dn?.of(r.code); if (z && z !== r.code && z !== r.name) return `${z} ${r.name}`; } catch {} }
