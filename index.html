@@ -113,6 +113,7 @@ dialog p{margin:0 0 12px}
   <label>鳥名 <select id="lang"><option value="zh">中文優先</option><option value="en">English</option></select></label>
   <label><input type="checkbox" id="onlyNew"> 只看新種</label>
   <button class="ghost" id="settings">設定</button>
+  <a href="guide.html" class="ghost" style="font-size:15px;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:7px 12px">說明</a>
  </div>
 </header>
 <main id="main">
@@ -143,8 +144,8 @@ dialog p{margin:0 0 12px}
  <p>到 <a href="https://ebird.org/api/keygen" target="_blank">ebird.org/api/keygen</a> 登入後就能免費拿到一組金鑰，貼在下面。它只會存在你自己這台電腦的瀏覽器裡。</p>
  <p><input id="key" placeholder="貼上金鑰" style="width:100%"></p>
  <p><b>我的 eBird 紀錄（選填）</b></p>
- <p style="font-size:13px">到 <a href="https://ebird.org/downloadMyData" target="_blank">ebird.org/downloadMyData</a> 申請下載，eBird 會寄一個 zip 給你，解壓縮後把 <code>MyEBirdData.csv</code> 選進來，就能標出「新種」。</p>
- <p><input type="file" id="lifeFile" accept=".csv" style="width:100%"> <small id="lifeMsg" style="color:var(--muted)"></small></p>
+ <p style="font-size:13px">到 <a href="https://ebird.org/downloadMyData" target="_blank">ebird.org/downloadMyData</a> 申請下載，eBird 會寄一個 zip 給你，解壓縮後把 <code>MyEBirdData.csv</code> 選進來，就能標出「新種」。也可以選之前備份的 <code>lifelist.txt</code> 還原。</p>
+ <p><input type="file" id="lifeFile" accept=".csv,.txt" style="width:100%"> <small id="lifeMsg" style="color:var(--muted)"></small></p>
  <p><b>自動同步到 GitHub（網站主人用）</b></p>
  <p style="font-size:13px">貼上只能修改這個 repository 的 GitHub 權杖後，你打勾的鳥種會自動存進 <code>lifelist.txt</code>（只有學名，沒有地點日期），手機、電腦和每日推播都會用同一份。<a href="https://github.com/settings/personal-access-tokens/new" target="_blank">建立權杖</a>。不要在別人的電腦上貼。</p>
  <p class="row"><input id="ghTok" type="password" placeholder="github_pat_…" autocomplete="off" style="flex:1"><button id="ghSave">儲存並同步</button></p>
@@ -401,6 +402,11 @@ function parseCsv(text){
 }
 $('lifeFile').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
+  if (/\.txt$/i.test(f.name)) {   // 從「下載 lifelist.txt」備份還原
+    local = new Set([...local, ...(await f.text()).split('\n').filter(l => l.trim() && !l.startsWith('#')).map(binom)]);
+    store.set('life', JSON.stringify([...local])); rebuildLife(); $('lifeMsg').textContent = `已匯入，現在共 ${life.size} 種`; load(); scheduleSync();
+    if (regList) renderCheck(); return;
+  }
   const rows = parseCsv(await f.text()), head = rows[0].map(h=>h.trim().toLowerCase());
   const col = head.findIndex(h => h==='scientific name' || h==='學名');
   if (col < 0) { $('lifeMsg').textContent = '找不到「Scientific Name」欄位，請確認是 eBird 下載的 CSV'; return; }

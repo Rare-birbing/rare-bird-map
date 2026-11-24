@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>使用說明 · 附近稀有鳥地圖</title>
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Fraunces:opsz,wght@9..144,700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 給朋友的野外手冊——親切、短句、照著做就會
+   IDEA: 一本小小的田野指南，跟地圖 App 同一套顏色
+   PICTURE: 頂部一張「地圖＋清單」的簡化示意圖
+   COLOUR/TYPE: 沙色底、墨綠字、朱紅強調；Noto Sans TC + Fraunces
+   LAYOUT: 單欄閱讀，步驟用大號數字懸掛在左邊 */
+:root{color-scheme:light dark;--bg:light-dark(#f6f1e7,#14181a);--panel:light-dark(#fffdf8,#1c2224);--ink:light-dark(#1d2b26,#e8e4da);--muted:light-dark(#5f6964,#9aa39e);--line:light-dark(#e4dccb,#2c3437);--accent:#d2452b}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16.5px/1.7 "Noto Sans TC",system-ui,sans-serif}
+a{color:var(--accent)}
+.wrap{max-width:760px;margin:0 auto;padding:0 max(5vw,18px)}
+header{background:#1d2b26;color:#f6f1e7;padding:clamp(28px,5vw,56px) 0}
+header .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,260px);gap:28px;align-items:center}
+h1{font:700 clamp(32px,6vw,46px)/1.08 Fraunces,"Noto Sans TC",serif;margin:0 0 12px;text-wrap:balance}
+header p{margin:0 0 18px;color:#d9d3c4;max-width:34em}
+.cta{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:10px}
+.cta:focus-visible{outline:3px solid #f6f1e7;outline-offset:3px}
+svg.hero{width:100%;height:auto;display:block}
+nav{position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line);z-index:2}
+nav .wrap{display:flex;gap:18px;overflow-x:auto;padding-block:10px;white-space:nowrap}
+nav a{flex:none;color:var(--ink);text-decoration:none;font-size:15px}
+nav a:hover{color:var(--accent)}
+section{padding:36px 0 8px}
+h2{font:700 26px/1.2 Fraunces,"Noto Sans TC",serif;margin:0 0 14px}
+h3{font-size:17px;margin:22px 0 6px}
+ol.steps{list-style:none;padding:0;margin:0;counter-reset:s}
+ol.steps li{counter-increment:s;position:relative;padding:0 0 18px 52px}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:-2px;width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;font:700 18px/36px Fraunces,serif;text-align:center}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0}
+.note{font-size:14.5px;color:var(--muted)}
+kbd{font:inherit;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:0 6px}
+dl dt{font-weight:700;margin-top:16px}dl dd{margin:4px 0 0}
+table{border-collapse:collapse;width:100%;font-size:15px}
+td,th{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
+th{font-weight:700}
+footer{margin-top:40px;padding:28px 0 40px;border-top:1px solid var(--line);font-size:13.5px;color:var(--muted)}
+@media(max-width:620px){header .wrap{grid-template-columns:1fr}svg.hero{max-width:300px}}
+</style>
+</head>
+<body>
+<header>
+ <div class="wrap">
+  <div>
+   <h1>附近稀有鳥地圖</h1>
+   <p>打開就知道附近最近出現了哪些稀有鳥、在哪裡、離你多遠，還能記錄你看過哪些鳥。資料來自 eBird，免費、不用註冊新帳號。</p>
+   <a class="cta" href="./">打開地圖 →</a>
+  </div>
+  <svg class="hero" viewBox="0 0 260 180" role="img" aria-label="示意圖：左邊是鳥種清單，右邊是標了紅點的地圖">
+   <rect x="0" y="0" width="260" height="180" rx="14" fill="#f6f1e7"/>
+   <rect x="0" y="0" width="92" height="180" rx="14" fill="#fffdf8"/>
+   <rect x="78" y="0" width="14" height="180" fill="#fffdf8"/>
+   <g fill="#1d2b26"><rect x="12" y="16" width="56" height="7" rx="3"/><rect x="12" y="52" width="48" height="6" rx="3"/><rect x="12" y="88" width="58" height="6" rx="3"/><rect x="12" y="124" width="44" height="6" rx="3"/></g>
+   <g fill="#c9c1ae"><rect x="12" y="62" width="34" height="5" rx="2"/><rect x="12" y="98" width="40" height="5" rx="2"/><rect x="12" y="134" width="30" height="5" rx="2"/></g>
+   <g fill="#d2452b"><rect x="12" y="34" width="66" height="4" rx="2" opacity=".35"/><rect x="12" y="34" width="26" height="4" rx="2"/></g>
+   <path d="M100 150 C140 120 150 160 190 120 S240 100 260 90" stroke="#bfe3ee" stroke-width="10" fill="none"/>
+   <path d="M110 30 L250 60 M130 170 L200 10" stroke="#e4dccb" stroke-width="3"/>
+   <circle cx="176" cy="92" r="46" fill="none" stroke="#2a6df4" stroke-dasharray="4 5"/>
+   <circle cx="176" cy="92" r="6" fill="#2a6df4" stroke="#fff" stroke-width="3"/>
+   <g stroke="#fff" stroke-width="2"><circle cx="150" cy="70" r="8" fill="#d2452b"/><circle cx="205" cy="112" r="7" fill="#e89a2c"/><circle cx="196" cy="62" r="6" fill="#d2452b"/><circle cx="148" cy="118" r="6" fill="#8a9a92"/></g>
+  </svg>
+ </div>
+</header>
+
+<nav><div class="wrap">
+ <a href="#start">開始使用</a><a href="#map">稀有鳥地圖</a><a href="#list">我的鳥種清單</a><a href="#phone">裝到手機</a><a href="#faq">常見問題</a><a href="#privacy">隱私</a>
+</div></nav>
+
+<main class="wrap">
+<section id="start">
+ <h2>開始使用（約 3 分鐘）</h2>
+ <ol class="steps">
+  <li><b>申請 eBird 金鑰</b><br>到 <a href="https://ebird.org/api/keygen" target="_blank">ebird.org/api/keygen</a>，用你的 eBird 帳號登入（沒有就免費註冊一個），畫面上會出現一串英數字，那就是你的金鑰。</li>
+  <li><b>打開地圖，貼上金鑰</b><br>第一次打開<a href="./">地圖</a>會跳出設定視窗，把金鑰貼進去，按「儲存並搜尋」。金鑰只存在你自己的瀏覽器裡。</li>
+  <li><b>選位置</b><br>按「📍 我的位置」，或在搜尋框打城市、地址，也可以直接點地圖。附近的稀有鳥就會出現。</li>
+ </ol>
+ <p class="note">只想先看看長什麼樣子？設定視窗裡按「用示範資料」，會顯示一組虛構的紀錄。</p>
+</section>
+
+<section id="map">
+ <h2>稀有鳥地圖</h2>
+ <p>地圖上每個點是一個有稀有鳥紀錄的地點，顏色代表紀錄有多新：</p>
+ <table>
+  <tr><th>顏色</th><th>意思</th></tr>
+  <tr><td><span style="color:#d2452b">●</span> 紅</td><td>今天或昨天</td></tr>
+  <tr><td><span style="color:#e89a2c">●</span> 橘</td><td>2 到 4 天前</td></tr>
+  <tr><td><span style="color:#8a9a92">●</span> 灰</td><td>更早</td></tr>
+ </table>
+ <h3>左邊的清單</h3>
+ <p>依距離由近到遠排列。點一種鳥，地圖會飛過去，下方還會展開<b>雄鳥／雌鳥</b>對照照片（來自 iNaturalist）。點地圖上的點，可以看到原始的 eBird 清單，或直接「導航過去」。</p>
+ <h3>常用的調整</h3>
+ <ul>
+  <li><b>半徑、天數</b>：上方滑桿最遠 50 公里，天數最多 30 天。</li>
+  <li><b>看別的地方</b>：搜尋框可以打地名，或貼上從 Google 地圖複製的座標（例如 <kbd>25.03, 121.56</kbd>）。</li>
+  <li><b>☆ 存這裡</b>：把常去的地點（老家、朋友家、熟悉的鳥點）存起來，之後從「★ 常用地點」一鍵切換。</li>
+  <li><b>☰ 清單</b>：收起側欄，讓地圖變大；中間的分隔線可以左右拖拉調寬。</li>
+  <li><b>衛星影像</b>：地圖右上角可以切換，找水域和棲地很好用。</li>
+ </ul>
+</section>
+
+<section id="list">
+ <h2>我的鳥種清單</h2>
+ <p>側欄上方切到「我的鳥種清單」，選一個地區（國家、州或縣市、郡），就會列出 eBird 在那裡<b>歷年紀錄過的所有鳥種</b>，包含過境鳥和迷鳥，並且照科別排好。</p>
+ <ul>
+  <li>看過的就<b>打勾</b>，上方的進度條會跟著更新。</li>
+  <li>可以搜尋中文、英文或學名，也可以只看「還沒看過」的，當作下一趟的目標鳥清單。</li>
+  <li>打勾的鳥，在稀有鳥地圖那邊就不會再標成「新種」。</li>
+ </ul>
+ <div class="card">
+  <b>已經在用 eBird 記錄？一次匯入全部</b><br>
+  到 <a href="https://ebird.org/downloadMyData" target="_blank">ebird.org/downloadMyData</a> 申請下載，eBird 會寄一個 zip 給你。解壓縮後，在「設定」裡選 <code>MyEBirdData.csv</code>，你看過的鳥就會全部自動打勾。
+ </div>
+</section>
+
+<section id="phone">
+ <h2>裝到手機主畫面</h2>
+ <p>不用去 App Store，用瀏覽器打開地圖網址就能裝：</p>
+ <ul>
+  <li><b>iPhone</b>：用 Safari 打開 → 下方的分享按鈕 → 「加入主畫面」。</li>
+  <li><b>Android</b>：用 Chrome 打開 → 右上角選單 → 「安裝應用程式」或「加到主畫面」。</li>
+ </ul>
+ <p class="note">手機和電腦是兩個瀏覽器，金鑰要各貼一次。打勾紀錄也是分開的，想搬過去可以用「設定 → 下載 lifelist.txt」，再到另一台匯入。</p>
+</section>
+
+<section id="faq">
+ <h2>常見問題</h2>
+ <dl>
+  <dt>為什麼有些鳥名是英文？</dt>
+  <dd>eBird 的繁體中文名稱只涵蓋台灣有紀錄的鳥種，其他地區沒有中文名的就會顯示英文。</dd>
+  <dt>出現「金鑰無效」？</dt>
+  <dd>到「設定」重新貼一次，注意前後不要多出空白。</dd>
+  <dt>附近完全沒有鳥？</dt>
+  <dd>「稀有鳥」是 eBird 判定在當地、當季少見的紀錄，所以有時真的很少。試著把半徑或天數調大。</dd>
+  <dt>打勾紀錄會不見嗎？</dt>
+  <dd>紀錄存在你的瀏覽器裡，清除瀏覽器資料就會一起清掉。建議偶爾到「設定 → 下載 lifelist.txt」備份一份，需要時再匯入就能還原。</dd>
+  <dt>可以每天收到推播通知嗎？</dt>
+  <dd>每日推播和多裝置自動同步要另外設定自己的 GitHub，目前只開在網站主人那邊。有興趣的話直接問他。</dd>
+ </dl>
+</section>
+
+<section id="privacy">
+ <h2>隱私</h2>
+ <p>你的 eBird 金鑰、位置、常用地點和打勾紀錄，<b>全部只存在你自己的瀏覽器裡</b>，不會傳給網站主人或任何第三方。網站只會用你的金鑰直接向 eBird 和 iNaturalist 查資料。</p>
+</section>
+</main>
+
+<footer><div class="wrap">
+ 鳥況資料來自 <a href="https://ebird.org" target="_blank">eBird</a>（Cornell Lab of Ornithology）；鳥類照片來自 <a href="https://www.inaturalist.org" target="_blank">iNaturalist</a> 觀察者，版權依各張署名；地圖 © Esri／OpenStreetMap。本工具僅供個人、非商業用途。
+</div></footer>
+</body>
+</html>
