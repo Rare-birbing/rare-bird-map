@@ -171,7 +171,7 @@ dialog p{margin:0 0 12px}
   </div>
   <div id="checkView" hidden>
    <div class="ckhead">
-    <div class="row"><b id="regName">尚未選擇地區</b><button class="ghost" id="pickRegion">選擇地區</button></div>
+    <div class="row"><b id="regName">尚未選擇地區</b><span class="row" style="gap:6px"><button class="ghost" id="hereRegion">📍 目前位置</button><button class="ghost" id="pickRegion">選擇地區</button></span></div>
     <div class="bar"><i id="progBar"></i></div>
     <div class="row" style="justify-content:space-between"><small id="progTxt" style="color:var(--muted)"></small><small class="syncmsg" style="color:var(--muted)"></small></div>
     <div class="row"><input id="ckq" placeholder="搜尋中文、英文或學名"><select id="ckf" aria-label="篩選"><option value="all">全部</option><option value="todo">還沒看過</option><option value="done">已看過</option><option value="target">🎯 目標鳥（近 30 天有人看到、我還沒看過）</option></select></div>
@@ -219,6 +219,7 @@ dialog p{margin:0 0 12px}
  <p><label style="display:grid;gap:4px">國家<select id="rCountry"><option>載入中…</option></select></label></p>
  <p><label style="display:grid;gap:4px">州／縣市<select id="rState"><option value="">（整個國家）</option></select></label></p>
  <p><label style="display:grid;gap:4px">郡（選填）<select id="rCounty"><option value="">（整個州／縣市）</option></select></label></p>
+ <p><button class="ghost" id="regHere" style="width:100%">📍 依目前位置帶入</button></p>
  <p><small id="regMsg" style="color:var(--muted)"></small></p>
  <div class="row" style="justify-content:flex-end"><button class="ghost" id="regCancel">取消</button><button id="regOk">載入清單</button></div>
 </dialog>
@@ -311,6 +312,9 @@ const EN = {
  '共 {n} 種（含網站上的 lifelist.txt {m} 種）':'{n} species (incl. {m} from lifelist.txt)',
  '先選一個位置：按「📍 我的位置」、在上方搜尋地點，或直接點地圖。':'Pick a location first: tap "📍 My location", search for a place above, or click the map.',
  '歡迎！先告訴我你想看哪裡的鳥。':'Welcome! First, tell me where you want to look for birds.',
+ '📍 目前位置':'📍 Here','📍 依目前位置帶入':'📍 Use current location','查詢目前位置所在的地區…':'Finding the region for the current location…',
+ '附近 50 公里內沒有 eBird 熱點，請手動選擇地區。':'No eBird hotspots within 50 km — please choose the region manually.',
+ '已依目前位置帶入（{p}）。可以把郡改成「整個州／縣市」看較大的範圍，再按「載入清單」。':'Filled in from the current location ({p}). Set County to "Whole state / province" for a bigger area, then press "Load list".',
  '已切回「以中心點畫圓」，顯示新位置附近的鳥。':'Switched back to "Radius around center" to show birds near the new location.','台灣':'Taiwan'
 };
 const tr = (k, v = {}) => { let r = (UI === 'en' && EN[k] !== undefined ? EN[k] : k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? '');
@@ -783,17 +787,43 @@ async function onState(){
 $('rCountry').onchange = onCountry; $('rState').onchange = onState;
 $('pickRegion').onclick = openRegion;
 $('regCancel').onclick = () => $('regDlg').close();
-async function openRegion(){
+async function openRegion(code){
   if (!store.get('key')) { $('dlg').showModal(); return; }
-  $('regMsg').textContent = ''; $('regDlg').showModal();
+  if (typeof code !== 'string') code = null;
+  $('regMsg').textContent = ''; if (!$('regDlg').open) $('regDlg').showModal();
   try {
     fillSel('rCountry', await regionsOf('country', 'world'));
-    const [c, st, co] = (region?.code || (TZ === 'Asia/Taipei' || UI === 'zh' ? 'TW' : 'US')).split('-');
+    const full = code || region?.code || (TZ === 'Asia/Taipei' || UI === 'zh' ? 'TW' : 'US');
+    const [c, st, co] = full.split('-');
     $('rCountry').value = c; await onCountry();
     if (st) { $('rState').value = `${c}-${st}`; await onState(); }
-    if (co) $('rCounty').value = region.code;
+    if (co) $('rCounty').value = full;
   } catch(e) { $('regMsg').textContent = e.message; }
 }
+// 目前位置屬於哪個 eBird 地區：找搜尋中心附近最近的 eBird 熱點，用它的國家／州／郡代碼
+async function regionHere(){
+  const c = noCenter ? map.getCenter() : center, lat = (+c.lat).toFixed(3), lng = normLng(c.lng).toFixed(3);
+  for (const dist of [10, 50]) {
+    const spots = await api(`ref/hotspot/geo?lat=${lat}&lng=${lng}&dist=${dist}&fmt=json`);
+    if (spots.length) {
+      const h = spots.map(x => ({...x, d: km(+lat, +lng, x.lat, x.lng)})).sort((a, b) => a.d - b.d)[0];
+      return h.subnational2Code || h.subnational1Code || h.countryCode;
+    }
+  }
+  return null;
+}
+async function useHere(){
+  $('regMsg').textContent = tr('查詢目前位置所在的地區…');
+  if (!$('regDlg').open) $('regDlg').showModal();
+  try {
+    const code = await regionHere();
+    if (!code) return $('regMsg').textContent = tr('附近 50 公里內沒有 eBird 熱點，請手動選擇地區。');
+    await openRegion(code);
+    $('regMsg').textContent = tr('已依目前位置帶入（{p}）。可以把郡改成「整個州／縣市」看較大的範圍，再按「載入清單」。', {p: labelOf(center.label)});
+  } catch(e) { $('regMsg').textContent = e.message; }
+}
+$('hereRegion').onclick = useHere;
+$('regHere').onclick = useHere;
 $('regOk').onclick = async () => {
   const code = $('rCounty').value || $('rState').value || $('rCountry').value; if (!code) return;
   const name = ['rCountry','rState','rCounty'].map(id => $(id)).filter(s => s.value).map(s => s.selectedOptions[0].textContent).join(' · ');
