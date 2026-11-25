@@ -85,6 +85,9 @@ body.dragging{cursor:col-resize;user-select:none}
 .popup .ago{text-align:right;font-size:12px;color:#6b746f}
 .banner{padding:12px 16px;background:#fdf1dc;color:#5c3a0b;font-size:14px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
 .banner[hidden]{display:none}
+#pickHint{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--ink);color:var(--bg);padding:8px 8px 8px 14px;border-radius:999px;display:flex;gap:10px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.3);font-size:14px;max-width:calc(100% - 24px)}
+#pickHint[hidden]{display:none}#pickHint button{min-height:32px;padding:2px 12px;color:var(--bg);border-color:rgba(255,255,255,.4)}
+.picking,.picking .leaflet-interactive{cursor:crosshair !important}
 .lb-dlg{max-width:min(92vw,1000px);width:auto;padding:0;background:#111;border:0;border-radius:12px;overflow:hidden;color:#eee}
 .lb-dlg::backdrop{background:rgba(0,0,0,.8)}
 .lb-dlg img{display:block;max-width:min(92vw,1000px);max-height:78vh;margin:0 auto;object-fit:contain;background:#111}
@@ -181,7 +184,7 @@ dialog p{margin:0 0 12px}
   <div class="credit" data-en="Sightings from &lt;a href=&quot;https://ebird.org&quot; target=&quot;_blank&quot;&gt;eBird&lt;/a&gt; (Cornell Lab of Ornithology), using each visitor's own API key. Bird photos by &lt;a href=&quot;https://www.inaturalist.org&quot; target=&quot;_blank&quot;&gt;iNaturalist&lt;/a&gt; observers, credited on each photo. Maps © Esri / OpenStreetMap. Personal, non-commercial use only.">鳥況資料來自 <a href="https://ebird.org" target="_blank">eBird</a>（Cornell Lab of Ornithology），使用每位使用者自己的 API 金鑰。鳥類照片來自 <a href="https://www.inaturalist.org" target="_blank">iNaturalist</a> 觀察者，版權依各張署名。地圖 © Esri / OpenStreetMap。僅供個人、非商業用途。</div>
  </aside>
  <div class="resizer" id="resizer" title="拖曳調整寬度，雙擊恢復預設"></div>
- <div id="map"></div>
+ <div id="map"><div id="pickHint" hidden><span>📌 在地圖上點一下，選擇要做清單的地區</span><button class="ghost" id="pickCancel">取消</button></div></div>
 </main>
 
 <dialog id="dlg">
@@ -219,7 +222,7 @@ dialog p{margin:0 0 12px}
  <p><label style="display:grid;gap:4px">國家<select id="rCountry"><option>載入中…</option></select></label></p>
  <p><label style="display:grid;gap:4px">州／縣市<select id="rState"><option value="">（整個國家）</option></select></label></p>
  <p><label style="display:grid;gap:4px">郡（選填）<select id="rCounty"><option value="">（整個州／縣市）</option></select></label></p>
- <p><button class="ghost" id="regHere" style="width:100%">📍 依目前位置帶入</button></p>
+ <p class="row" style="flex-wrap:nowrap"><button class="ghost" id="regHere" style="flex:1">📍 依目前位置帶入</button><button class="ghost" id="regPin" style="flex:1">📌 在地圖上點選</button></p>
  <p><small id="regMsg" style="color:var(--muted)"></small></p>
  <div class="row" style="justify-content:flex-end"><button class="ghost" id="regCancel">取消</button><button id="regOk">載入清單</button></div>
 </dialog>
@@ -312,7 +315,10 @@ const EN = {
  '共 {n} 種（含網站上的 lifelist.txt {m} 種）':'{n} species (incl. {m} from lifelist.txt)',
  '先選一個位置：按「📍 我的位置」、在上方搜尋地點，或直接點地圖。':'Pick a location first: tap "📍 My location", search for a place above, or click the map.',
  '歡迎！先告訴我你想看哪裡的鳥。':'Welcome! First, tell me where you want to look for birds.',
- '📍 目前位置':'📍 Here','查詢這個地區最近的目擊…':'Looking up the latest sighting in this region…',
+ '📍 目前位置':'📍 Here','📌 在地圖上點選':'📌 Pick on map','📌 在地圖上點一下，選擇要做清單的地區':'📌 Click the map to choose a region for your checklist',
+ '查詢大頭針所在的地區…':'Finding the region for the pin…',
+ '大頭針附近 50 公里內沒有 eBird 熱點，換個地方點點看，或手動選擇。':'No eBird hotspots within 50 km of the pin — try another spot or choose manually.',
+ '已依大頭針位置帶入。可以把郡改成「整個州／縣市」看較大的範圍，再按「載入清單」。':'Filled in from the pin. Set County to "Whole state / province" for a bigger area, then press "Load list".','查詢這個地區最近的目擊…':'Looking up the latest sighting in this region…',
  '這個地區最近 30 天沒有紀錄':'No reports in this region in the last 30 days','看這個地區的歷年紀錄':'See all records for this region',
  '最近一筆目擊':'Latest sighting','📍 依目前位置帶入':'📍 Use current location','查詢目前位置所在的地區…':'Finding the region for the current location…',
  '附近 50 公里內沒有 eBird 熱點，請手動選擇地區。':'No eBird hotspots within 50 km — please choose the region manually.',
@@ -395,7 +401,9 @@ map.on('popupopen', async e => {
 });
 const me = L.circleMarker([center.lat, center.lng], {radius:8, color:'#fff', weight:3, fillColor:'#2a6df4', fillOpacity:1}).addTo(map);
 const ring = L.circle([center.lat, center.lng], {radius:$('dist').value*1000, color:'#2a6df4', weight:1, fill:false, dashArray:'4 6'}).addTo(map);
-map.on('click', e => setCenter(e.latlng.lat, e.latlng.lng, tr('地圖上選的點')));
+map.on('click', e => { if (pickMode) return pickAt(e.latlng); setCenter(e.latlng.lat, e.latlng.lng, tr('地圖上選的點')); });
+let pickMode = false, pinMark = null;
+L.DomEvent.disableClickPropagation($('pickHint'));
 
 // ===== 小工具 =====
 function km(a,b,c,d){ const R=6371, r=x=>x*Math.PI/180, dLa=r(c-a), dLo=r(d-b);
@@ -818,8 +826,8 @@ async function openRegion(code){
   } catch(e) { $('regMsg').textContent = e.message; }
 }
 // 目前位置屬於哪個 eBird 地區：找搜尋中心附近最近的 eBird 熱點，用它的國家／州／郡代碼
-async function regionHere(){
-  const c = noCenter ? map.getCenter() : center, lat = (+c.lat).toFixed(3), lng = normLng(c.lng).toFixed(3);
+async function regionHere(at){
+  const c = at || (noCenter ? map.getCenter() : center), lat = (+c.lat).toFixed(3), lng = normLng(c.lng).toFixed(3);
   for (const dist of [10, 50]) {
     const spots = await api(`ref/hotspot/geo?lat=${lat}&lng=${lng}&dist=${dist}&fmt=json`);
     if (spots.length) {
@@ -840,6 +848,28 @@ async function useHere(){
   } catch(e) { $('regMsg').textContent = e.message; }
 }
 $('hereRegion').onclick = useHere;
+// 📌 在地圖上點選：收起視窗 → 點地圖放大頭針 → 查出地區 → 帶回視窗
+function startPick(){
+  pickMode = true; $('regDlg').close(); $('pickHint').hidden = false; $('map').classList.add('picking');
+  if (innerWidth < 760 && document.querySelector('main.collapsed') === null) $('map').scrollIntoView({behavior:'smooth'});
+}
+function stopPick(){ pickMode = false; $('pickHint').hidden = true; $('map').classList.remove('picking'); }
+async function pickAt(ll){
+  stopPick();
+  if (pinMark) pinMark.remove();
+  pinMark = L.marker([ll.lat, ll.lng]).addTo(map);
+  $('regDlg').showModal(); $('regMsg').textContent = tr('查詢大頭針所在的地區…');
+  try {
+    const code = await regionHere(ll);
+    if (!code) return $('regMsg').textContent = tr('大頭針附近 50 公里內沒有 eBird 熱點，換個地方點點看，或手動選擇。');
+    await openRegion(code);
+    $('regMsg').textContent = tr('已依大頭針位置帶入。可以把郡改成「整個州／縣市」看較大的範圍，再按「載入清單」。');
+  } catch(e) { $('regMsg').textContent = e.message; }
+}
+$('regPin').onclick = startPick;
+$('pickCancel').onclick = e => { e.stopPropagation(); stopPick(); $('regDlg').showModal(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && pickMode) { stopPick(); $('regDlg').showModal(); } });
+$('regDlg').addEventListener('close', () => { if (!pickMode && pinMark) { pinMark.remove(); pinMark = null; } });
 $('regHere').onclick = useHere;
 $('regOk').onclick = async () => {
   const code = $('rCounty').value || $('rState').value || $('rCountry').value; if (!code) return;
