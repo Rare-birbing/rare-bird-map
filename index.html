@@ -86,6 +86,8 @@ body.dragging{cursor:col-resize;user-select:none}
 .popup .ago{text-align:right;font-size:12px;color:#6b746f}
 .banner{padding:12px 16px;background:#fdf1dc;color:#5c3a0b;font-size:14px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
 .banner[hidden]{display:none}
+.btn-primary{display:inline-flex;align-items:center;min-height:38px;padding:7px 14px;border-radius:8px;background:var(--ink);color:var(--bg);text-decoration:none;font-weight:500;white-space:nowrap}
+#contactDlg .row{flex-wrap:wrap}
 .contact-card{display:grid;gap:10px;padding:14px 16px;margin:0 0 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
 .contact-card div{display:grid;gap:2px}.contact-card small{color:var(--muted);font-size:12px}.contact-card b{font-size:16px}
 .contact-card a{color:var(--accent);font-size:16px;overflow-wrap:anywhere}
@@ -224,12 +226,13 @@ dialog p{margin:0 0 12px}
   <div><small>名稱</small><b>Jolen Cheng</b></div>
   <div><small>Email</small><a href="mailto:jccheng201335308@gmail.com" id="mailLink">jccheng201335308@gmail.com</a></div>
  </div>
- <p style="font-size:13px;color:var(--muted)" data-en="When reporting a problem, it really helps to include: phone or computer, which browser (Chrome, Safari…), the region you were looking at, what happened, and a screenshot if you can. “Write to me” fills in your device and browser for you — you can see and edit everything before sending.">回報問題時，如果能附上這些資訊會很有幫助：用手機還是電腦、哪個瀏覽器（Chrome、Safari…）、當時在看哪個地區、發生了什麼事，最好再加一張截圖。按「寫信給我」會先幫你填好裝置和瀏覽器，寄出前都看得到、也可以自己修改。</p>
+ <p style="font-size:13px;color:var(--muted)" data-en="When reporting a problem, it really helps to include: phone or computer, which browser (Chrome, Safari…), the region you were looking at, what happened, and a screenshot if you can. “Write with Gmail” or “Use mail app” fills in your device and browser for you — you can see and edit everything before sending.">回報問題時，如果能附上這些資訊會很有幫助：用手機還是電腦、哪個瀏覽器（Chrome、Safari…）、當時在看哪個地區、發生了什麼事，最好再加一張截圖。按「用 Gmail 寫信」或「用郵件 App 寫信」會先幫你填好裝置和瀏覽器，寄出前都看得到、也可以自己修改。</p>
  <p><small id="copyMsg" style="color:var(--muted)"></small></p>
  <div class="row" style="justify-content:flex-end">
   <button class="ghost" id="contactClose">關閉</button>
   <button class="ghost" id="copyMail">複製 Email</button>
-  <button id="writeMail">寫信給我</button>
+  <button class="ghost" id="writeMail">用郵件 App 寫信</button>
+  <a id="gmailBtn" target="_blank" rel="noopener" class="btn-primary">用 Gmail 寫信</a>
  </div>
 </dialog>
 
@@ -341,7 +344,8 @@ const EN = {
  '📍 目前位置':'📍 Here','聯絡我':'Contact','名稱':'Name','複製 Email':'Copy email','寫信給我':'Write to me',
  '手機／平板':'Phone / tablet','電腦':'Computer','其他':'Other','（請在這裡寫下你的需求、建議或遇到的問題）':'(Write your request, idea, or the problem you ran into here)',
  '裝置：{d}':'Device: {d}','瀏覽器：{b}':'Browser: {b}','介面語言：{l}':'Interface language: {l}','清單地區：{r}':'Checklist region: {r}',
- '[稀有鳥地圖] 意見回饋':'[Rare Birds Nearby] Feedback','已複製 Email ✓':'Email copied ✓','點一下隱藏／顯示':'Click to hide / show','（圖例隱藏了 {n} 筆）':' ({n} hidden by legend)','📌 在地圖上點選':'📌 Pick on map','📌 在地圖上點一下，選擇要做清單的地區':'📌 Click the map to choose a region for your checklist',
+ '[稀有鳥地圖] 意見回饋':'[Rare Birds Nearby] Feedback','用郵件 App 寫信':'Use mail app','用 Gmail 寫信':'Write with Gmail',
+ '如果沒有反應，代表這台裝置沒有設定郵件程式，請改按「用 Gmail 寫信」或「複製 Email」。':'If nothing happens, this device has no mail app set up — use "Write with Gmail" or "Copy email" instead.','已複製 Email ✓':'Email copied ✓','點一下隱藏／顯示':'Click to hide / show','（圖例隱藏了 {n} 筆）':' ({n} hidden by legend)','📌 在地圖上點選':'📌 Pick on map','📌 在地圖上點一下，選擇要做清單的地區':'📌 Click the map to choose a region for your checklist',
  '查詢大頭針所在的地區…':'Finding the region for the pin…',
  '大頭針附近 50 公里內沒有 eBird 熱點，換個地方點點看，或手動選擇。':'No eBird hotspots within 50 km of the pin — try another spot or choose manually.',
  '已依大頭針位置帶入。可以把郡改成「整個州／縣市」看較大的範圍，再按「載入清單」。':'Filled in from the pin. Set County to "Whole state / province" for a bigger area, then press "Load list".','查詢這個地區最近的目擊…':'Looking up the latest sighting in this region…',
@@ -797,10 +801,19 @@ const mailBody = () => {
     tr('裝置：{d}', {d:dev}) + '\n' + tr('瀏覽器：{b}', {b:br}) + '\n' + tr('介面語言：{l}', {l:UI === 'en' ? 'English' : '中文'}) +
     (region ? '\n' + tr('清單地區：{r}', {r:region.name}) : '');
 };
-$('contactBtn').onclick = () => { $('copyMsg').textContent = ''; $('contactDlg').showModal(); };
+const mailSubj = () => tr('[稀有鳥地圖] 意見回饋');
+$('contactBtn').onclick = () => {
+  $('copyMsg').textContent = '';
+  // Gmail 網頁版的寫信畫面：電腦沒有設定郵件程式時也能用
+  $('gmailBtn').href = `https://mail.google.com/mail/?view=cm&fs=1&to=${MAIL}&su=${encodeURIComponent(mailSubj())}&body=${encodeURIComponent(mailBody())}`;
+  $('contactDlg').showModal();
+};
 $('contactClose').onclick = () => $('contactDlg').close();
-$('writeMail').onclick = () => { location.href = `mailto:${MAIL}?subject=${encodeURIComponent(tr('[稀有鳥地圖] 意見回饋'))}&body=${encodeURIComponent(mailBody())}`; };
-$('mailLink').onclick = e => { e.preventDefault(); $('writeMail').click(); };
+$('writeMail').onclick = () => {
+  location.href = `mailto:${MAIL}?subject=${encodeURIComponent(mailSubj())}&body=${encodeURIComponent(mailBody())}`;
+  $('copyMsg').textContent = tr('如果沒有反應，代表這台裝置沒有設定郵件程式，請改按「用 Gmail 寫信」或「複製 Email」。');
+};
+$('mailLink').onclick = e => { e.preventDefault(); $('copyMail').click(); };
 $('copyMail').onclick = async () => { try { await navigator.clipboard.writeText(MAIL); $('copyMsg').textContent = tr('已複製 Email ✓'); } catch { $('copyMsg').textContent = MAIL; } };
 $('closeDlg').onclick = () => $('dlg').close();
 $('save').onclick = () => { const k=$('key').value.trim(); if(!k) return; store.set('key',k); demo=false; $('dlg').close();
