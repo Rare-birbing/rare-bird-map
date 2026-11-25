@@ -923,7 +923,8 @@ async function loadRegion(r){
   }
   // 只保留最近用過的 6 個地區清單，比較舊的刪掉（要用時再下載，約 2 秒）
   const lru = [r.code, ...JSON.parse(store.get('regLRU') || '[]').filter(c => c !== r.code)];
-  lru.slice(6).forEach(c => { try { localStorage.removeItem('reg:' + c); } catch {} });
+  const keep = new Set(lru.slice(0, 6).map(c => 'reg:' + c));
+  try { Object.keys(localStorage).filter(k => k.startsWith('reg:') && !keep.has(k)).forEach(k => localStorage.removeItem(k)); } catch {}
   store.set('regLRU', JSON.stringify(lru.slice(0, 6)));
   region = r; regList = list; store.set('region', JSON.stringify(r)); renderCheck();
 }
