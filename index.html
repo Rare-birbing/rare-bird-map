@@ -310,7 +310,8 @@ const EN = {
  '••••••••（已儲存）':'•••••••• (saved)','已移除權杖，改為只存在這台裝置':'Token removed — your list stays on this device only','✓ 已同步':'✓ Synced',
  '共 {n} 種（含網站上的 lifelist.txt {m} 種）':'{n} species (incl. {m} from lifelist.txt)',
  '先選一個位置：按「📍 我的位置」、在上方搜尋地點，或直接點地圖。':'Pick a location first: tap "📍 My location", search for a place above, or click the map.',
- '歡迎！先告訴我你想看哪裡的鳥。':'Welcome! First, tell me where you want to look for birds.','台灣':'Taiwan'
+ '歡迎！先告訴我你想看哪裡的鳥。':'Welcome! First, tell me where you want to look for birds.',
+ '已切回「以中心點畫圓」，顯示新位置附近的鳥。':'Switched back to "Radius around center" to show birds near the new location.','台灣':'Taiwan'
 };
 const tr = (k, v = {}) => { let r = (UI === 'en' && EN[k] !== undefined ? EN[k] : k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? '');
   if (UI === 'en') r = r.replace(/\b1 reports\b/g, '1 report').replace(/\b1 targets\b/g, '1 target').replace(/\b1 rare species\b/g, '1 rare species');
@@ -412,8 +413,11 @@ const navLinks = (a, b, name) => { const app = navApp(), other = app === 'google
 const privNote = tr('🏠 可能是私人地點（例如自家庭院），前往前請先確認是否開放');
 const isNew = o => life.size > 0 && kind(o) === 'species' && !life.has(binom(o.sciName));
 
+let scopeNote = false;
 function setCenter(lat, lng, label){
   if (noCenter) { noCenter = false; me.setStyle({opacity:1, fillOpacity:1}); applyScope(); }
+  // 主動換位置時，「整個清單地區」模式會把地圖拉回原地區，所以自動切回以中心點畫圓
+  if ($('scope').value === 'region') { $('scope').value = 'radius'; store.set('scope', 'radius'); applyScope(); scopeNote = true; }
   lng = normLng(lng); lat = Math.max(-89.9, Math.min(89.9, +lat));
   center = {lat:+lat, lng, label}; store.set('center', JSON.stringify(center));
   me.setLatLng([lat,lng]); ring.setLatLng([lat,lng]); map.fitBounds(ring.getBounds());
@@ -566,6 +570,7 @@ function render(rows){
   const byRegion = $('scope').value === 'region' && region && !demo;
   if (byRegion && layer.getLayers().length) map.fitBounds(L.featureGroup(layer.getLayers()).getBounds().pad(.2), {maxZoom:11});
   status(`${demo?tr('【示範資料】'):tr('【eBird 即時資料】')}${byRegion ? tr('全{r}：', {r:region.name}) : ''}${tr('{g} 種稀有鳥，{n} 筆紀錄', {g:groups.length, n:rows.length})}${rows.length<total?tr('（已濾掉 {n} 筆看過的）', {n:total-rows.length}):''}${tr(' · 點鳥種看雌雄照片')}`);
+  if (scopeNote) { scopeNote = false; $('status').textContent = tr('已切回「以中心點畫圓」，顯示新位置附近的鳥。') + ' ' + $('status').textContent; }
   loadThumbs();
 }
 
