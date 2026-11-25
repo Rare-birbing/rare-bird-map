@@ -602,7 +602,7 @@ function render(rows){
     </div>`).join('') : `<div class="empty">${tr('這個範圍內目前沒有稀有鳥紀錄。試試把半徑或天數調大。')}</div>`;
   const byRegion = $('scope').value === 'region' && region && !demo;
   if (byRegion && layer.getLayers().length) map.fitBounds(L.featureGroup(layer.getLayers()).getBounds().pad(.2), {maxZoom:11});
-  status(`${demo?tr('【示範資料】'):tr('【eBird 即時資料】')}${byRegion ? tr('全{r}：', {r:region.name}) : ''}${tr('{g} 種稀有鳥，{n} 筆紀錄', {g:groups.length, n:rows.length})}${rows.length<total?tr('（已濾掉 {n} 筆看過的）', {n:total-rows.length}):''}${ageHidden ? tr('（圖例隱藏了 {n} 筆）', {n:ageHidden}) : ''}${tr(' · 點鳥種看雌雄照片')}`);
+  status(`${demo?tr('【示範資料】'):tr('【eBird 即時資料】')}${byRegion ? tr('全{r}：', {r:region.name}) : ''}${tr('{g} 種稀有鳥，{n} 筆紀錄', {g:groups.length, n:rows.length})}${beforeAge<total?tr('（已濾掉 {n} 筆看過的）', {n:total-beforeAge}):''}${ageHidden ? tr('（圖例隱藏了 {n} 筆）', {n:ageHidden}) : ''}${tr(' · 點鳥種看雌雄照片')}`);
   if (scopeNote) { scopeNote = false; $('status').textContent = tr('已切回「以中心點畫圓」，顯示新位置附近的鳥。') + ' ' + $('status').textContent; }
   loadThumbs();
 }
