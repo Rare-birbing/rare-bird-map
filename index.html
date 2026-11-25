@@ -308,7 +308,9 @@ const EN = {
  '權杖無效或權限不足':'Token invalid or missing permission','GitHub 錯誤 {s}':'GitHub error {s}','等待同步…':'Waiting to sync…',
  '同步中…':'Syncing…','權杖無效或沒有寫入權限':'Token invalid or has no write access','✓ 已同步 {t}':'✓ Synced {t}','同步失敗：':'Sync failed: ',
  '••••••••（已儲存）':'•••••••• (saved)','已移除權杖，改為只存在這台裝置':'Token removed — your list stays on this device only','✓ 已同步':'✓ Synced',
- '共 {n} 種（含網站上的 lifelist.txt {m} 種）':'{n} species (incl. {m} from lifelist.txt)','台灣':'Taiwan'
+ '共 {n} 種（含網站上的 lifelist.txt {m} 種）':'{n} species (incl. {m} from lifelist.txt)',
+ '先選一個位置：按「📍 我的位置」、在上方搜尋地點，或直接點地圖。':'Pick a location first: tap "📍 My location", search for a place above, or click the map.',
+ '歡迎！先告訴我你想看哪裡的鳥。':'Welcome! First, tell me where you want to look for birds.','台灣':'Taiwan'
 };
 const tr = (k, v = {}) => { let r = (UI === 'en' && EN[k] !== undefined ? EN[k] : k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? '');
   if (UI === 'en') r = r.replace(/\b1 reports\b/g, '1 report').replace(/\b1 targets\b/g, '1 target').replace(/\b1 rare species\b/g, '1 rare species');
@@ -332,7 +334,9 @@ const binom = s => String(s||'').trim().split(/\s+/).slice(0,2).join(' ').toLowe
 
 // ===== ① 狀態：上次的設定都記在瀏覽器裡 =====
 const normLng = x => ((+x + 180) % 360 + 360) % 360 - 180;
+let noCenter = !store.get('center');     // 第一次來、還沒選過位置
 let center = JSON.parse(store.get('center') || 'null') || {lat:33.4484, lng:-112.0740, label:tr('鳳凰城（預設）')};
+const TZ = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch { return ''; } })();
 center.lng = normLng(center.lng);
 let places = JSON.parse(store.get('places') || '[]');
 // 生涯紀錄 = 這台裝置上的（匯入 CSV + 按「看過了」）∪ 網站上的 lifelist.txt（各裝置和每日推播共用）
@@ -351,7 +355,9 @@ $('onlyNew').checked = store.get('onlyNew') === '1';
 $('lifeMsg').textContent = life.size ? tr('目前共 {n} 種', {n:life.size}) : '';
 
 // ===== ② 地圖 =====
-const map = L.map('map').setView([center.lat, center.lng], 10);
+const startView = !noCenter ? [[center.lat, center.lng], 10]
+  : TZ === 'Asia/Taipei' ? [[23.7, 121], 7] : TZ.startsWith('America/') ? [[39, -98], 4] : [[25, 10], 2];
+const map = L.map('map').setView(startView[0], startView[1]);
 // 直接從電腦打開檔案時，OSM / CARTO 會拒絕；Esri 不會，所以排前面。之後放上網路，OSM 也能用。
 const esri = s => L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${s}/MapServer/tile/{z}/{y}/{x}`, {maxZoom:19, attribution:'Tiles © Esri'});
 const base = { [tr('地形街道')]:esri('World_Topo_Map'), [tr('衛星影像')]:esri('World_Imagery'), [tr('街道圖')]:esri('World_Street_Map'),
@@ -407,6 +413,7 @@ const privNote = tr('🏠 可能是私人地點（例如自家庭院），前往
 const isNew = o => life.size > 0 && kind(o) === 'species' && !life.has(binom(o.sciName));
 
 function setCenter(lat, lng, label){
+  if (noCenter) { noCenter = false; me.setStyle({opacity:1, fillOpacity:1}); applyScope(); }
   lng = normLng(lng); lat = Math.max(-89.9, Math.min(89.9, +lat));
   center = {lat:+lat, lng, label}; store.set('center', JSON.stringify(center));
   me.setLatLng([lat,lng]); ring.setLatLng([lat,lng]); map.fitBounds(ring.getBounds());
@@ -490,6 +497,12 @@ async function load(){
   $('where').textContent = labelOf(center.label);
   if (!store.get('key')) demo = true;          // 還沒有金鑰：先看示範資料，不要一打開就跳設定
   $('banner').hidden = !demo;
+  if (noCenter && !demo) {                     // 有金鑰但還沒選位置：先請他選，不要顯示別人的地區
+    layer.clearLayers(); groups = []; markers = {};
+    $('where').textContent = tr('尚未定位');
+    $('list').innerHTML = `<div class="empty">${tr('先選一個位置：按「📍 我的位置」、在上方搜尋地點，或直接點地圖。')}</div>`;
+    return status(tr('歡迎！先告訴我你想看哪裡的鳥。'));
+  }
   status(tr('讀取中…'));
   try { render(demo ? sampleData() : await fetchEbird()); }
   catch(e) {
@@ -668,7 +681,8 @@ $('dist').oninput = () => { $('distV').textContent = $('dist').value; ring.setRa
 $('dist').onchange = () => { store.set('dist', $('dist').value); map.fitBounds(ring.getBounds()); load(); };
 $('back').onchange = () => { store.set('back', $('back').value); load(); };
 const applyScope = () => { const r = $('scope').value === 'region';
-  $('distWrap').style.display = r ? 'none' : ''; ring.setStyle({opacity: r ? 0 : 1}); };
+  $('distWrap').style.display = r ? 'none' : ''; ring.setStyle({opacity: r || (noCenter && !demo) ? 0 : 1}); };
+if (noCenter && store.get('key')) me.setStyle({opacity:0, fillOpacity:0});
 $('scope').value = store.get('scope') || 'radius'; applyScope();
 $('scope').onchange = () => {
   if ($('scope').value === 'region' && !region) {      // 還沒選過地區，先帶去選
@@ -688,7 +702,8 @@ $('uiLang').onchange = () => { store.set('ui', $('uiLang').value); store.set('la
 $('uiSwitch').textContent = UI === 'en' ? '中文' : 'EN';
 $('uiSwitch').onclick = () => { const n = UI === 'en' ? 'zh' : 'en'; store.set('ui', n); store.set('lang', n); location.reload(); };
 $('closeDlg').onclick = () => $('dlg').close();
-$('save').onclick = () => { const k=$('key').value.trim(); if(!k) return; store.set('key',k); demo=false; $('dlg').close(); load(); };
+$('save').onclick = () => { const k=$('key').value.trim(); if(!k) return; store.set('key',k); demo=false; $('dlg').close();
+  if (noCenter) { me.setStyle({opacity:0, fillOpacity:0}); applyScope(); map.setView(startView[0], startView[1]); } load(); };
 $('demo').onclick = () => { demo=true; $('dlg').close(); load(); };
 $('bannerBtn').onclick = () => { $('key').value = ''; $('dlg').showModal(); $('key').focus(); };
 $('locate').onclick = () => {
@@ -768,7 +783,7 @@ async function openRegion(){
   $('regMsg').textContent = ''; $('regDlg').showModal();
   try {
     fillSel('rCountry', await regionsOf('country', 'world'));
-    const [c, st, co] = (region?.code || 'US-AZ').split('-');
+    const [c, st, co] = (region?.code || (TZ === 'Asia/Taipei' || UI === 'zh' ? 'TW' : 'US')).split('-');
     $('rCountry').value = c; await onCountry();
     if (st) { $('rState').value = `${c}-${st}`; await onState(); }
     if (co) $('rCounty').value = region.code;
@@ -932,11 +947,7 @@ async function loadRepoList(){
     } catch(e) { setSync(tr('同步失敗：') + e.message); }
     return;
   }
-  try { const r = await fetch('lifelist.txt', {cache:'no-store'}); if (!r.ok) return;
-    repoList = parseList(await r.text());
-    rebuildLife(); $('lifeMsg').textContent = tr('共 {n} 種（含網站上的 lifelist.txt {m} 種）', {n:life.size, m:repoList.size});
-    if (groups.length) load();
-  } catch {}
+  // 沒有權杖的訪客（例如朋友）不讀網站上的 lifelist.txt，那是網站主人的紀錄
 }
 renderPlaces();
 load();
