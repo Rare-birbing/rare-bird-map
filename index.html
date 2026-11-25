@@ -86,6 +86,9 @@ body.dragging{cursor:col-resize;user-select:none}
 .popup .ago{text-align:right;font-size:12px;color:#6b746f}
 .banner{padding:12px 16px;background:#fdf1dc;color:#5c3a0b;font-size:14px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
 .banner[hidden]{display:none}
+.contact-card{display:grid;gap:10px;padding:14px 16px;margin:0 0 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.contact-card div{display:grid;gap:2px}.contact-card small{color:var(--muted);font-size:12px}.contact-card b{font-size:16px}
+.contact-card a{color:var(--accent);font-size:16px;overflow-wrap:anywhere}
 #pickHint{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--ink);color:var(--bg);padding:8px 8px 8px 14px;border-radius:999px;display:flex;gap:10px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.3);font-size:14px;max-width:calc(100% - 24px)}
 #pickHint[hidden]{display:none}#pickHint button{min-height:32px;padding:2px 12px;color:var(--bg);border-color:rgba(255,255,255,.4)}
 .picking,.picking .leaflet-interactive{cursor:crosshair !important}
@@ -163,6 +166,7 @@ dialog p{margin:0 0 12px}
   <button class="ghost" id="settings">設定</button>
   <button class="ghost" id="uiSwitch" title="Switch language / 切換語言">EN</button>
   <a href="guide.html" class="ghost" style="font-size:15px;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:7px 12px">說明</a>
+  <button class="ghost" id="contactBtn">聯絡我</button>
  </div>
  </div>
 </header>
@@ -210,6 +214,22 @@ dialog p{margin:0 0 12px}
   <button class="ghost" id="demo">用示範資料</button>
   <button class="ghost" id="closeDlg">關閉</button>
   <button id="save">儲存並搜尋</button>
+ </div>
+</dialog>
+
+<dialog id="contactDlg" aria-labelledby="contactTitle">
+ <p><b id="contactTitle" style="font-size:18px">聯絡我</b></p>
+ <p data-en="Have a request or an idea, or spotted something broken (a bug)? I'd love to hear from you — just send me an email!">有任何需求、建議，或是發現網站哪裡怪怪的（bug），都歡迎寫信給我！</p>
+ <div class="contact-card">
+  <div><small>名稱</small><b>Jolen Cheng</b></div>
+  <div><small>Email</small><a href="mailto:jccheng201335308@gmail.com" id="mailLink">jccheng201335308@gmail.com</a></div>
+ </div>
+ <p style="font-size:13px;color:var(--muted)" data-en="When reporting a problem, it really helps to include: phone or computer, which browser (Chrome, Safari…), the region you were looking at, what happened, and a screenshot if you can. “Write to me” fills in your device and browser for you — you can see and edit everything before sending.">回報問題時，如果能附上這些資訊會很有幫助：用手機還是電腦、哪個瀏覽器（Chrome、Safari…）、當時在看哪個地區、發生了什麼事，最好再加一張截圖。按「寫信給我」會先幫你填好裝置和瀏覽器，寄出前都看得到、也可以自己修改。</p>
+ <p><small id="copyMsg" style="color:var(--muted)"></small></p>
+ <div class="row" style="justify-content:flex-end">
+  <button class="ghost" id="contactClose">關閉</button>
+  <button class="ghost" id="copyMail">複製 Email</button>
+  <button id="writeMail">寫信給我</button>
  </div>
 </dialog>
 
@@ -318,7 +338,10 @@ const EN = {
  '共 {n} 種（含網站上的 lifelist.txt {m} 種）':'{n} species (incl. {m} from lifelist.txt)',
  '先選一個位置：按「📍 我的位置」、在上方搜尋地點，或直接點地圖。':'Pick a location first: tap "📍 My location", search for a place above, or click the map.',
  '歡迎！先告訴我你想看哪裡的鳥。':'Welcome! First, tell me where you want to look for birds.',
- '📍 目前位置':'📍 Here','點一下隱藏／顯示':'Click to hide / show','（圖例隱藏了 {n} 筆）':' ({n} hidden by legend)','📌 在地圖上點選':'📌 Pick on map','📌 在地圖上點一下，選擇要做清單的地區':'📌 Click the map to choose a region for your checklist',
+ '📍 目前位置':'📍 Here','聯絡我':'Contact','名稱':'Name','複製 Email':'Copy email','寫信給我':'Write to me',
+ '手機／平板':'Phone / tablet','電腦':'Computer','其他':'Other','（請在這裡寫下你的需求、建議或遇到的問題）':'(Write your request, idea, or the problem you ran into here)',
+ '裝置：{d}':'Device: {d}','瀏覽器：{b}':'Browser: {b}','介面語言：{l}':'Interface language: {l}','清單地區：{r}':'Checklist region: {r}',
+ '[稀有鳥地圖] 意見回饋':'[Rare Birds Nearby] Feedback','已複製 Email ✓':'Email copied ✓','點一下隱藏／顯示':'Click to hide / show','（圖例隱藏了 {n} 筆）':' ({n} hidden by legend)','📌 在地圖上點選':'📌 Pick on map','📌 在地圖上點一下，選擇要做清單的地區':'📌 Click the map to choose a region for your checklist',
  '查詢大頭針所在的地區…':'Finding the region for the pin…',
  '大頭針附近 50 公里內沒有 eBird 熱點，換個地方點點看，或手動選擇。':'No eBird hotspots within 50 km of the pin — try another spot or choose manually.',
  '已依大頭針位置帶入。可以把郡改成「整個州／縣市」看較大的範圍，再按「載入清單」。':'Filled in from the pin. Set County to "Whole state / province" for a bigger area, then press "Load list".','查詢這個地區最近的目擊…':'Looking up the latest sighting in this region…',
@@ -765,6 +788,20 @@ $('uiLang').value = UI;
 $('uiLang').onchange = () => { store.set('ui', $('uiLang').value); store.set('lang', $('uiLang').value); location.reload(); };
 $('uiSwitch').textContent = UI === 'en' ? '中文' : 'EN';
 $('uiSwitch').onclick = () => { const n = UI === 'en' ? 'zh' : 'en'; store.set('ui', n); store.set('lang', n); location.reload(); };
+// ===== 聯絡我 =====
+const MAIL = 'jccheng201335308@gmail.com';
+const mailBody = () => {
+  const ua = navigator.userAgent, dev = /iPhone|iPad|Android|Mobile/.test(ua) ? tr('手機／平板') : tr('電腦');
+  const br = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : /Firefox\//.test(ua) ? 'Firefox' : tr('其他');
+  return tr('（請在這裡寫下你的需求、建議或遇到的問題）') + '\n\n\n— — —\n' +
+    tr('裝置：{d}', {d:dev}) + '\n' + tr('瀏覽器：{b}', {b:br}) + '\n' + tr('介面語言：{l}', {l:UI === 'en' ? 'English' : '中文'}) +
+    (region ? '\n' + tr('清單地區：{r}', {r:region.name}) : '');
+};
+$('contactBtn').onclick = () => { $('copyMsg').textContent = ''; $('contactDlg').showModal(); };
+$('contactClose').onclick = () => $('contactDlg').close();
+$('writeMail').onclick = () => { location.href = `mailto:${MAIL}?subject=${encodeURIComponent(tr('[稀有鳥地圖] 意見回饋'))}&body=${encodeURIComponent(mailBody())}`; };
+$('mailLink').onclick = e => { e.preventDefault(); $('writeMail').click(); };
+$('copyMail').onclick = async () => { try { await navigator.clipboard.writeText(MAIL); $('copyMsg').textContent = tr('已複製 Email ✓'); } catch { $('copyMsg').textContent = MAIL; } };
 $('closeDlg').onclick = () => $('dlg').close();
 $('save').onclick = () => { const k=$('key').value.trim(); if(!k) return; store.set('key',k); demo=false; $('dlg').close();
   if (noCenter) { me.setStyle({opacity:0, fillOpacity:0}); applyScope(); map.setView(startView[0], startView[1]); } load(); };
