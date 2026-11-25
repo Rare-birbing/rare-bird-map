@@ -684,7 +684,10 @@ $('list').addEventListener('click', e => {
   const row = e.target.closest('.sp'); if (!row) return;
   document.querySelectorAll('.sp.on').forEach(x=>x.classList.remove('on')); row.classList.add('on');
   const g = groups.find(x=>x.code===row.dataset.code);
-  map.flyTo([g.near.lat, g.near.lng], 13); setTimeout(()=>markers[g.code]?.[0]?.openPopup(), 600);
+  const mk = markers[g.code]?.[0]; let opened = false;
+  const openIt = () => { if (!opened && mk) { opened = true; mk.openPopup(); } };
+  map.once('moveend', openIt); setTimeout(openIt, 2500);      // 等地圖飛到定點才打開，小視窗才會自動挪到看得到的位置
+  map.flyTo([g.near.lat, g.near.lng], 13);
   showDetail(row, {code:g.spCode, sci:g.sci, reg:g.near.subnational1Code || g.near.countryCode});
 });
 
