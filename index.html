@@ -212,10 +212,12 @@ dialog p{margin:0 0 12px}
   <select id="uiLang"><option value="zh">中文</option><option value="en">English</option></select></label></p>
  <p><label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-size:15px"><b>導航用</b>
   <select id="navApp"><option value="google">Google 地圖</option><option value="apple">Apple 地圖</option></select></label></p>
+ <div id="adminBox" hidden>
  <p><b>自動同步到 GitHub（網站主人用）</b></p>
  <p style="font-size:13px" data-en="Paste a GitHub token that can only edit this repository, and the birds you tick are saved to &lt;code&gt;lifelist.txt&lt;/code&gt; automatically (scientific names only — no places or dates), shared by your phone, computer and daily alerts. &lt;a href=&quot;https://github.com/settings/personal-access-tokens/new&quot; target=&quot;_blank&quot;&gt;Create a token&lt;/a&gt;. Never paste it on someone else's computer.">貼上只能修改這個 repository 的 GitHub 權杖後，你打勾的鳥種會自動存進 <code>lifelist.txt</code>（只有學名，沒有地點日期），手機、電腦和每日推播都會用同一份。<a href="https://github.com/settings/personal-access-tokens/new" target="_blank">建立權杖</a>。不要在別人的電腦上貼。</p>
  <p class="row"><input id="ghTok" type="password" placeholder="github_pat_…" autocomplete="off" style="flex:1"><button id="ghSave">儲存並同步</button></p>
  <p><small class="syncmsg" style="color:var(--muted)"></small></p>
+ </div>
  <p><button class="ghost" id="exportLife">下載 lifelist.txt（備份用）</button></p>
  <div class="row" style="justify-content:flex-end">
   <button class="ghost" id="demo">用示範資料</button>
@@ -1108,6 +1110,8 @@ async function syncNow(retry = true){
   } catch(e) { setSync(tr('同步失敗：') + e.message); }
   syncing = false;
 }
+// 只有已存權杖、或網址加 ?admin 才顯示（朋友看不到）
+if (tok() || /[?&]admin\b/.test(location.search)) $('adminBox').hidden = false;
 $('ghTok').value = tok() ? tr('••••••••（已儲存）') : '';
 $('ghSave').onclick = () => {
   const v = $('ghTok').value.trim();
