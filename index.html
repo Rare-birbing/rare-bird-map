@@ -312,7 +312,9 @@ const EN = {
  '共 {n} 種（含網站上的 lifelist.txt {m} 種）':'{n} species (incl. {m} from lifelist.txt)',
  '先選一個位置：按「📍 我的位置」、在上方搜尋地點，或直接點地圖。':'Pick a location first: tap "📍 My location", search for a place above, or click the map.',
  '歡迎！先告訴我你想看哪裡的鳥。':'Welcome! First, tell me where you want to look for birds.',
- '📍 目前位置':'📍 Here','📍 依目前位置帶入':'📍 Use current location','查詢目前位置所在的地區…':'Finding the region for the current location…',
+ '📍 目前位置':'📍 Here','查詢這個地區最近的目擊…':'Looking up the latest sighting in this region…',
+ '這個地區最近 30 天沒有紀錄':'No reports in this region in the last 30 days','看這個地區的歷年紀錄':'See all records for this region',
+ '最近一筆目擊':'Latest sighting','📍 依目前位置帶入':'📍 Use current location','查詢目前位置所在的地區…':'Finding the region for the current location…',
  '附近 50 公里內沒有 eBird 熱點，請手動選擇地區。':'No eBird hotspots within 50 km — please choose the region manually.',
  '已依目前位置帶入（{p}）。可以把郡改成「整個州／縣市」看較大的範圍，再按「載入清單」。':'Filled in from the current location ({p}). Set County to "Whole state / province" for a bigger area, then press "Load list".',
  '已切回「以中心點畫圓」，顯示新位置附近的鳥。':'Switched back to "Radius around center" to show birds near the new location.','台灣':'Taiwan'
@@ -620,10 +622,10 @@ async function showDetail(row, g){
   d = document.createElement('div'); d.className = 'detail'; d.innerHTML = `<small style="color:var(--muted)">${tr('載入照片中…')}</small>`;
   row.appendChild(d);
   const done = life.has(binom(g.sci));
-  const links = `<div class="links">${done ? `<span style="color:var(--muted)">${tr('✓ 已在生涯紀錄')}</span> · ` : `<button data-seen="${esc(binom(g.sci))}" style="min-height:32px;padding:4px 12px;margin-right:6px">${tr('✓ 我看過了')}</button>`}<a href="https://ebird.org/species/${encodeURIComponent(g.code)}" target="_blank">${tr('eBird 鳥種頁')}</a> · <a href="https://search.macaulaylibrary.org/catalog?taxonCode=${encodeURIComponent(g.code)}&mediaType=photo${g.reg ? `&regionCode=${encodeURIComponent(g.reg)}&sort=upload_date_desc` : ''}" target="_blank">${g.reg ? tr('這個地區最近上傳的照片') : tr('更多照片')}${tr('（Macaulay Library，含 eBird 清單附的照片）')}</a></div>`;
+  const links = `<div class="links">${done ? `<span style="color:var(--muted)">${tr('✓ 已在生涯紀錄')}</span> · ` : `<button data-seen="${esc(binom(g.sci))}" style="min-height:32px;padding:4px 12px;margin-right:6px">${tr('✓ 我看過了')}</button>`}<a href="https://ebird.org/species/${encodeURIComponent(g.code)}" target="_blank">${tr('eBird 鳥種頁')}</a> · <span class="lastchk">${g.reg && store.get('key') && !demo ? `<span style="color:var(--muted)">${tr('查詢這個地區最近的目擊…')}</span>` : mlLink(g)}</span></div>`;
   try {
     const t = await taxon(binom(g.sci));
-    if (!t.id) { d.innerHTML = `<small>${tr('找不到這個鳥種的照片（雜交或未定種常會這樣）')}</small>`+links; return; }
+    if (!t.id) { d.innerHTML = `<small>${tr('找不到這個鳥種的照片（雜交或未定種常會這樣）')}</small>`+links; return fillLast(d, g); }
     if (!pc[binom(g.sci)].sex) { const [m, f] = await Promise.all([sexPhoto(t.id,11), sexPhoto(t.id,10)]); pc[binom(g.sci)].sex = {m, f}; saveP(); }
     const {m, f} = pc[binom(g.sci)].sex;
     const fig = (p, label) => p ? `<figure><img class="lb" src="${esc(p.url)}" alt="${label}" data-full="${esc(p.url.replace('medium','large'))}" data-cap="${esc(label + ' · ' + p.by)}" data-link="${esc(p.link)}"><figcaption><b>${label}</b> ${esc(p.by)}</figcaption></figure>` : '';
@@ -631,6 +633,21 @@ async function showDetail(row, g){
       ? `<div class="pics">${fig(m,tr('♂ 雄鳥'))}${fig(f,tr('♀ 雌鳥'))}</div>${m&&f?'':`<small style="color:var(--muted)">${tr('只找到一種性別的照片，可能雌雄外觀相近。')}</small>`}${links}`
       : `<div class="pics">${fig(t.md?{url:t.md,by:t.by,link:'https://www.inaturalist.org/taxa/'+t.id}:null,tr('外觀'))}</div><small style="color:var(--muted)">${tr('沒有標註性別的照片，這種鳥通常雌雄外觀相近。')}</small>${links}`;
   } catch { d.innerHTML = `<small>${tr('照片載入失敗')}</small>`+links; }
+  fillLast(d, g);
+}
+const mlLink = g => `<a href="https://search.macaulaylibrary.org/catalog?taxonCode=${encodeURIComponent(g.code)}&mediaType=photo${g.reg ? `&regionCode=${encodeURIComponent(g.reg)}&sort=upload_date_desc` : ''}" target="_blank">${tr('更多照片')}（Macaulay Library）</a>`;
+// 這個地區最近一筆目擊：eBird 每個地點各給最新一筆，取日期最新的那張清單
+async function fillLast(d, g){
+  const el = d.querySelector('.lastchk'); if (!el || !g.reg || !store.get('key') || demo) return;
+  try {
+    const rows = await api(`data/obs/${g.reg}/recent/${g.code}?back=30&detail=simple`);
+    if (!rows.length) {
+      el.innerHTML = `<span style="color:var(--muted)">${tr('這個地區最近 30 天沒有紀錄')}</span> · <a href="https://ebird.org/species/${encodeURIComponent(g.code)}/${encodeURIComponent(g.reg)}" target="_blank">${tr('看這個地區的歷年紀錄')}</a>`;
+      return;
+    }
+    const o = rows.sort((a, b) => b.obsDt.localeCompare(a.obsDt))[0];
+    el.innerHTML = `${tr('最近一筆目擊')}：<a href="https://ebird.org/checklist/${encodeURIComponent(o.subId)}" target="_blank">${esc(o.locName)} · ${ago(daysAgo(o.obsDt))}${o.howMany ? ` ×${esc(o.howMany)}` : ''}</a>${o.locationPrivate ? ' ' + tr('🏠 可能是私人地點') : ''}`;
+  } catch { el.innerHTML = mlLink(g); }
 }
 
 $('list').addEventListener('click', e => {
